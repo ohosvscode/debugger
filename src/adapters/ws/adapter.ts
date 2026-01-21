@@ -1,3 +1,4 @@
+import type { ClientRequestArgs } from 'node:http'
 import type { Adapter } from '../../adapter'
 import type { Connection } from '../../connection'
 import type { JsonException } from '../../errors/json-exception'
@@ -99,11 +100,18 @@ export class WsAdapterImpl extends BaseAdapter implements WsAdapter {
 }
 
 export namespace WsAdapter {
-  export type WebSocketProtocol = 'ws' | 'wss'
-  export type WebSocketURLString = `${WebSocketProtocol}://${string}`
-  export interface Options extends Omit<URL, 'toJSON' | 'port'> {}
-
-  export interface ResolvedOptions extends Required<Options> {}
+  export interface Options extends Omit<URL, 'toJSON' | 'port'> {
+    devtoolsWebSocketOptions?: WebSocket.ClientOptions | ClientRequestArgs
+    controlWebSocketOptions?: WebSocket.ClientOptions | ClientRequestArgs
+    devtoolsWebSocketProtocols?: string[]
+    controlWebSocketProtocols?: string[]
+  }
+  export interface ResolvedOptions extends Omit<Required<Options>, 'devtoolsWebSocketOptions' | 'controlWebSocketOptions' | 'devtoolsWebSocketProtocols' | 'controlWebSocketProtocols'> {
+    devtoolsWebSocketOptions?: WebSocket.ClientOptions | ClientRequestArgs
+    controlWebSocketOptions?: WebSocket.ClientOptions | ClientRequestArgs
+    devtoolsWebSocketProtocols?: string[]
+    controlWebSocketProtocols?: string[]
+  }
 }
 
 export interface WsAdapter extends Adapter {
@@ -134,22 +142,34 @@ export async function createWsAdapter(options?: WsAdapter.Options): Promise<Adap
  * @param websocketUrlNotPortString - The WebSocket URL string without the `port`. If you still provide the port, it will be ignored.
  * Please use the `createConnection` function to provide the `Devtools Port` and `Control Port`.
  */
-export async function createWsAdapter<TWebSocketURLString extends string>(
-  websocketUrlNotPortString?: TWebSocketURLString extends `${WsAdapter.WebSocketProtocol}://${string}:${number}`
-    ? never
-    : TWebSocketURLString,
-): Promise<Adapter.Factory<WsAdapter>>
-export async function createWsAdapter(options: WsAdapter.Options | WsAdapter.WebSocketURLString = new URL('ws://localhost')): Promise<Adapter.Factory<WsAdapter>> {
+export async function createWsAdapter(websocketUrlNotPortString?: string): Promise<Adapter.Factory<WsAdapter>>
+export async function createWsAdapter(options: WsAdapter.Options | string = new URL('ws://localhost')): Promise<Adapter.Factory<WsAdapter>> {
   const resolvedOptions = resolveOptions(options)
 
   return {
     onInitialize(connection) {
       // 9229: DevTools UI/保活通道；先连上并发送握手，保持后端不断线
-      const keepAlive = new WebSocket(resolveUrl(resolvedOptions, connection.getDevtoolsPort()).toString())
+      const keepAlive = new WebSocket(
+        resolveUrl(resolvedOptions, connection.getDevtoolsPort()).toString(),
+        (resolvedOptions.devtoolsWebSocketProtocols
+          ? resolvedOptions.devtoolsWebSocketProtocols
+          : resolvedOptions.devtoolsWebSocketOptions) as string[], // as string[] to ignore the type error
+        Array.isArray(resolvedOptions.devtoolsWebSocketProtocols)
+          ? resolvedOptions.devtoolsWebSocketOptions
+          : undefined,
+      )
       keepAlive.on('open', () => keepAlive.send(JSON.stringify({ type: 'connected' })))
 
       // 9230: 控制/调试通道（Chrome 亦连接此端口）
-      const ws = new WebSocket(resolveUrl(resolvedOptions, connection.getControlPort()))
+      const ws = new WebSocket(
+        resolveUrl(resolvedOptions, connection.getControlPort()),
+        (resolvedOptions.controlWebSocketProtocols
+          ? resolvedOptions.controlWebSocketProtocols
+          : resolvedOptions.controlWebSocketOptions) as string[], // as string[] to ignore the type error
+        Array.isArray(resolvedOptions.controlWebSocketProtocols)
+          ? resolvedOptions.controlWebSocketOptions
+          : undefined,
+      )
 
       return new Promise((resolve, reject) => {
         function handleOpen() {
@@ -179,7 +199,7 @@ export async function createWsAdapter(options: WsAdapter.Options | WsAdapter.Web
   }
 }
 
-function resolveOptions(options: WsAdapter.WebSocketURLString | WsAdapter.Options): WsAdapter.ResolvedOptions {
+function resolveOptions(options: WsAdapter.Options | string): WsAdapter.ResolvedOptions {
   if (typeof options === 'string') return new URL(options)
 
   return {
