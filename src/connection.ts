@@ -1,8 +1,9 @@
 import type { Adapter } from './adapter'
-import type { Awaitable, Disposable } from './types'
+import type { JsonException } from './errors'
+import type { Awaitable } from './types'
 import child_process from 'node:child_process'
-import { BaseException } from './errors/base-exception'
 import { IdentifierGenerator } from './identifier-generator'
+import { Disposable } from './types'
 import { sleep } from './utils'
 
 export namespace Connection {
@@ -33,19 +34,9 @@ export namespace Connection {
   export interface ResolvedOptions extends Omit<Required<Options>, 'adapter'> {
     adapter: Adapter.Factory
   }
-
-  export class DisposeError extends BaseException {
-    constructor(private readonly errors: unknown[]) {
-      super(`Dispose connection failed!`)
-    }
-
-    getErrors(): unknown[] {
-      return this.errors
-    }
-  }
 }
 
-export interface Connection extends Adapter, Disposable {
+export interface Connection extends Adapter, Disposable.Registry<unknown> {
   /** The PID of the application. */
   getPid(): string
   /** The identifier of the application. */
@@ -54,8 +45,6 @@ export interface Connection extends Adapter, Disposable {
   getAbilityName(): string
   /** The devtools URL of the application. */
   getDevtoolsUrl(): string
-  /** Dispose the connection. */
-  dispose(): Promise<void>
   /** Generate a new identifier and return it. */
   generateIdentifier(): number
   /** Get the current identifier. */
@@ -81,16 +70,19 @@ export async function createConnection(options: Connection.Options): Promise<Con
   await bindPort(resolvedOptions.controlPort, `ark:${pid}@Debugger`)
 
   const connection = new ConnectionImpl(resolvedOptions, pid)
-  const adapter = await resolvedOptions.adapter.onInitialize?.(connection, resolvedOptions)
+  const adapter = await resolvedOptions.adapter.onInitialize?.(connection as Connection, resolvedOptions)
   connection.setAdapter(adapter)
-  return connection
+  return connection as Connection
 }
 
 class ConnectionImpl extends IdentifierGenerator implements Connection {
   constructor(
     private readonly options: Connection.ResolvedOptions,
     private readonly pid: string,
-  ) { super() }
+  ) {
+    super()
+    if (options.adapter.dispose) this.push(Disposable.from(async () => await options.adapter.dispose?.()))
+  }
 
   private _adapter: Adapter | undefined
 
@@ -100,7 +92,15 @@ class ConnectionImpl extends IdentifierGenerator implements Connection {
   }
 
   getConnection(): Connection {
-    return this
+    return this as Connection
+  }
+
+  onNotification<Id extends number = number, Params = unknown>(callback: (notification: Adapter.Notification<Id, Params> | JsonException) => void): Disposable {
+    return this.getAdapter().onNotification(callback)
+  }
+
+  onRequest<Id extends number = number, Result = unknown, ErrorData = unknown>(callback: (response: Adapter.Response<Id, Result> | Adapter.Error<Id, ErrorData> | JsonException) => void): Disposable {
+    return this.getAdapter().onRequest(callback)
   }
 
   getAdapter(): Adapter {
@@ -148,26 +148,9 @@ class ConnectionImpl extends IdentifierGenerator implements Connection {
     return `devtools://devtools/bundled/inspector.html?v8only=true&ws=127.0.0.1:${this.options.controlPort}`
   }
 
-  async dispose(): Promise<void> {
-    const errors: unknown[] = []
-
-    try {
-      await this.options.adapter.dispose?.()
-    }
-    catch (error) {
-      errors.push(error)
-    }
-
-    try {
-      await forceClearPorts(this.options)
-    }
-    catch (error) {
-      errors.push(error)
-    }
-
-    if (errors.length > 0) {
-      throw new Connection.DisposeError(errors)
-    }
+  async dispose(): Promise<PromiseSettledResult<Awaited<unknown>>[]> {
+    await forceClearPorts(this.options)
+    return await super.dispose()
   }
 }
 

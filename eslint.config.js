@@ -6,6 +6,7 @@ export default antfu({
     'ts/no-namespace': 'off',
     'ts/method-signature-style': ['error', 'method'],
     'naily/if-oneline': 'error',
+    'antfu/if-newline': 'off',
   },
   plugins: {
     naily: {

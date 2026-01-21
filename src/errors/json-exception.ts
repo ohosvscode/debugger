@@ -12,4 +12,8 @@ export namespace JsonException {
     STRINGIFY_ERROR = 'stringify_error',
     UNKNOWN_JSONRPC_RESPONSE = 'unknown_jsonrpc_response',
   }
+
+  export function isJsonException(value: unknown): value is JsonException {
+    return BaseException.isBaseException(value) && value instanceof JsonException
+  }
 }

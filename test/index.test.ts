@@ -1,5 +1,5 @@
-import type { Adapter, Connection } from '../src'
-import { createConnection } from '../src'
+import type { Connection } from '../src'
+import { Adapter, createConnection } from '../src'
 import { createWsAdapter } from '../src/ws'
 
 describe('connection', (it) => {
@@ -14,6 +14,11 @@ describe('connection', (it) => {
     expect(connection.getPid()).toBeDefined()
     debuggerAdapter = await connection.getDebuggerAdapter()
     expect(debuggerAdapter).toBeDefined()
+    connection.push(
+      connection.onNotification((notification) => {
+        console.warn(notification)
+      }),
+    )
   })
 
   it.sequential('should set breakpoint', async () => {
@@ -23,6 +28,11 @@ describe('connection', (it) => {
         options: ['enableLaunchAccelerate'],
       },
     })
-    console.warn(response)
+    if (!Adapter.Response.is(response)) throw new Error(`Failed to set breakpoint: ${response}`)
+    console.warn(response.result)
+  })
+
+  afterAll(async () => {
+    await connection.dispose()
   })
 })
