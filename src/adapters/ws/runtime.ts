@@ -1,12 +1,13 @@
-import type { WsAdapter } from '.'
 import type { Adapter } from '../../adapter'
+import type { WsAdapterImpl } from './adapter'
 
 export class WsRuntimeAdapter implements Adapter.Runtime {
-  constructor(private readonly adapter: WsAdapter) {}
+  constructor(private readonly adapter: WsAdapterImpl) {}
 
-  async enable<Id extends number = number>(request: Adapter.Runtime.Enable.Request<Id>): Promise<Adapter.Runtime.Enable.Response<Id>> {
-    this.adapter.getWebSocket()?.send(JSON.stringify({
-      id: request.id,
-    }))
+  enable<Id extends number = number>(request: Adapter.Runtime.Enable.Request<Id>): Promise<Adapter.Runtime.Enable.Response<Id> | Adapter.Error<Id>> {
+    return this.adapter.sendRequest({
+      ...request,
+      method: 'Runtime.enable',
+    })
   }
 }

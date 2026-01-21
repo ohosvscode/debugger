@@ -1,22 +1,42 @@
-import type { WsAdapter } from '.'
 import type { Adapter } from '../../adapter'
+import type { Awaitable } from '../../types'
+import type { WsAdapterImpl } from './adapter'
 
 export class WsDebuggerAdapter implements Adapter.Debugger {
-  constructor(private readonly adapter: WsAdapter) {}
+  constructor(private readonly adapter: WsAdapterImpl) {}
 
-  async enable<Id extends number = number>(request: Adapter.Debugger.Enable.Request<Id>): Promise<Adapter.Debugger.Enable.Response<Id>> {
-
+  enable<Id extends number = number>(request: Adapter.Debugger.Enable.Request<Id>): Promise<Adapter.Debugger.Enable.Response<Id> | Adapter.Error<Id, unknown>> {
+    return this.adapter.sendRequest({
+      ...request,
+      method: 'Debugger.enable',
+    })
   }
 
-  async disable<Id extends number = number>(request: Adapter.Debugger.Disable.Request<Id>): Promise<void> {
-
+  disable<Id extends number = number>(request: Adapter.Debugger.Disable.Request<Id>): Promise<void> {
+    return this.adapter.sendNotification({
+      ...request,
+      method: 'Debugger.disable',
+    })
   }
 
-  async removeBreakpointsByUrl<Id extends number = number>(request: Adapter.Debugger.RemoveBreakpointsByUrl.Request<Id>): Promise<Adapter.Debugger.RemoveBreakpointsByUrl.Response<Id>> {
-
+  removeBreakpointsByUrl<Id extends number = number>(request: Adapter.Debugger.RemoveBreakpointsByUrl.Request<Id>): Promise<Adapter.Debugger.RemoveBreakpointsByUrl.Response<Id> | Adapter.Error<Id, unknown>> {
+    return this.adapter.sendRequest({
+      ...request,
+      method: 'Debugger.removeBreakpointsByUrl',
+    })
   }
 
-  async getPossibleAndSetBreakpointByUrl<Id extends number = number>(request: Adapter.Debugger.GetPossibleAndSetBreakpointByUrl.Request<Id>): Promise<Adapter.Debugger.GetPossibleAndSetBreakpointByUrl.Response<Id>> {
+  getPossibleAndSetBreakpointByUrl<Id extends number = number>(request: Adapter.Debugger.GetPossibleAndSetBreakpointByUrl.Request<Id>): Promise<Adapter.Debugger.GetPossibleAndSetBreakpointByUrl.Response<Id> | Adapter.Error<Id, unknown>> {
+    return this.adapter.sendRequest({
+      ...request,
+      method: 'Debugger.getPossibleAndSetBreakpointByUrl',
+    })
+  }
 
+  dispose(): Awaitable<void> {
+    this.disable({
+      id: this.adapter.getConnection().generateIdentifier(),
+      params: {},
+    })
   }
 }

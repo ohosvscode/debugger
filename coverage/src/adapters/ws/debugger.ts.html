@@ -23,9 +23,9 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">33.33% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>1/1</span>
+                <span class='fraction'>2/6</span>
             </div>
         
             
@@ -37,16 +37,16 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">20% </span>
+                <span class="strong">33.33% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>1/5</span>
+                <span class='fraction'>2/6</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">33.33% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>1/1</span>
+                <span class='fraction'>2/6</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line high'></div>
+    <div class='status-line low'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -85,8 +85,32 @@
 <a name='L20'></a><a href='#L20'>20</a>
 <a name='L21'></a><a href='#L21'>21</a>
 <a name='L22'></a><a href='#L22'>22</a>
-<a name='L23'></a><a href='#L23'>23</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L23'></a><a href='#L23'>23</a>
+<a name='L24'></a><a href='#L24'>24</a>
+<a name='L25'></a><a href='#L25'>25</a>
+<a name='L26'></a><a href='#L26'>26</a>
+<a name='L27'></a><a href='#L27'>27</a>
+<a name='L28'></a><a href='#L28'>28</a>
+<a name='L29'></a><a href='#L29'>29</a>
+<a name='L30'></a><a href='#L30'>30</a>
+<a name='L31'></a><a href='#L31'>31</a>
+<a name='L32'></a><a href='#L32'>32</a>
+<a name='L33'></a><a href='#L33'>33</a>
+<a name='L34'></a><a href='#L34'>34</a>
+<a name='L35'></a><a href='#L35'>35</a>
+<a name='L36'></a><a href='#L36'>36</a>
+<a name='L37'></a><a href='#L37'>37</a>
+<a name='L38'></a><a href='#L38'>38</a>
+<a name='L39'></a><a href='#L39'>39</a>
+<a name='L40'></a><a href='#L40'>40</a>
+<a name='L41'></a><a href='#L41'>41</a>
+<a name='L42'></a><a href='#L42'>42</a>
+<a name='L43'></a><a href='#L43'>43</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
@@ -96,37 +120,73 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import type { WsAdapter } from '.'
-import type { Adapter } from '../../adapter'
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import type { Adapter } from '../../adapter'
+import type { Awaitable } from '../../types'
+import type { WsAdapterImpl } from './adapter'
 &nbsp;
 export class WsDebuggerAdapter implements Adapter.Debugger {
-  constructor(private readonly adapter: WsAdapter) {}
+  constructor(private readonly adapter: WsAdapterImpl) {}
 &nbsp;
-  async <span class="fstat-no" title="function not covered" >enable&lt;Id extends number = number&gt;(r</span>equest: Adapter.Debugger.Enable.Request&lt;Id&gt;): Promise&lt;Adapter.Debugger.Enable.Response&lt;Id&gt;&gt; {
-&nbsp;
+  enable&lt;Id extends number = number&gt;(request: Adapter.Debugger.Enable.Request&lt;Id&gt;): Promise&lt;Adapter.Debugger.Enable.Response&lt;Id&gt; | Adapter.Error&lt;Id, unknown&gt;&gt; {
+    return this.adapter.sendRequest({
+      ...request,
+      method: 'Debugger.enable',
+    })
   }
 &nbsp;
-  async <span class="fstat-no" title="function not covered" >disable&lt;Id extends number = number&gt;(r</span>equest: Adapter.Debugger.Disable.Request&lt;Id&gt;): Promise&lt;void&gt; {
-&nbsp;
+<span class="fstat-no" title="function not covered" >  disable&lt;Id extends number = number&gt;(r</span>equest: Adapter.Debugger.Disable.Request&lt;Id&gt;): Promise&lt;void&gt; {
+<span class="cstat-no" title="statement not covered" >    return this.adapter.sendNotification({</span>
+      ...request,
+      method: 'Debugger.disable',
+    })
   }
 &nbsp;
-  async <span class="fstat-no" title="function not covered" >removeBreakpointsByUrl&lt;Id extends number = number&gt;(r</span>equest: Adapter.Debugger.RemoveBreakpointsByUrl.Request&lt;Id&gt;): Promise&lt;Adapter.Debugger.RemoveBreakpointsByUrl.Response&lt;Id&gt;&gt; {
-&nbsp;
+<span class="fstat-no" title="function not covered" >  removeBreakpointsByUrl&lt;Id extends number = number&gt;(r</span>equest: Adapter.Debugger.RemoveBreakpointsByUrl.Request&lt;Id&gt;): Promise&lt;Adapter.Debugger.RemoveBreakpointsByUrl.Response&lt;Id&gt; | Adapter.Error&lt;Id, unknown&gt;&gt; {
+<span class="cstat-no" title="statement not covered" >    return this.adapter.sendRequest({</span>
+      ...request,
+      method: 'Debugger.removeBreakpointsByUrl',
+    })
   }
 &nbsp;
-  async <span class="fstat-no" title="function not covered" >getPossibleAndSetBreakpointByUrl&lt;Id extends number = number&gt;(r</span>equest: Adapter.Debugger.GetPossibleAndSetBreakpointByUrl.Request&lt;Id&gt;): Promise&lt;Adapter.Debugger.GetPossibleAndSetBreakpointByUrl.Response&lt;Id&gt;&gt; {
+<span class="fstat-no" title="function not covered" >  getPossibleAndSetBreakpointByUrl&lt;Id extends number = number&gt;(r</span>equest: Adapter.Debugger.GetPossibleAndSetBreakpointByUrl.Request&lt;Id&gt;): Promise&lt;Adapter.Debugger.GetPossibleAndSetBreakpointByUrl.Response&lt;Id&gt; | Adapter.Error&lt;Id, unknown&gt;&gt; {
+<span class="cstat-no" title="statement not covered" >    return this.adapter.sendRequest({</span>
+      ...request,
+      method: 'Debugger.getPossibleAndSetBreakpointByUrl',
+    })
+  }
 &nbsp;
+<span class="fstat-no" title="function not covered" >  dispose(): Awaitable&lt;void&gt; {</span>
+<span class="cstat-no" title="statement not covered" >    this.disable({</span>
+      id: this.adapter.getConnection().generateIdentifier(),
+      params: {},
+    })
   }
 }
 &nbsp;</pre></td></tr></table></pre>
@@ -136,7 +196,7 @@ export class WsDebuggerAdapter implements Adapter.Debugger {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-01-21T15:46:35.041Z
+                at 2026-01-21T17:01:58.614Z
             </div>
         <script src="../../../prettify.js"></script>
         <script>

@@ -1,5 +1,5 @@
 export class BaseException extends Error {
-  constructor(message: string) {
+  constructor(public readonly message: string) {
     super(message)
   }
 }

@@ -2,6 +2,7 @@ import type { Adapter } from './adapter'
 import type { Awaitable, Disposable } from './types'
 import child_process from 'node:child_process'
 import { BaseException } from './errors/base-exception'
+import { IdentifierGenerator } from './identifier-generator'
 import { sleep } from './utils'
 
 export namespace Connection {
@@ -18,7 +19,7 @@ export namespace Connection {
      * const connection = createConnection({ adapter, ... })
      * ```
      */
-    adapter: Awaitable<Adapter>
+    adapter: Awaitable<Adapter.Factory>
     /** The identifier of the ArkTS application. @example `com.example.app` */
     identifier: `${string}.${string}.${string}`
     /** The ability name of the application. @default EntryAbility */
@@ -30,7 +31,7 @@ export namespace Connection {
   }
 
   export interface ResolvedOptions extends Omit<Required<Options>, 'adapter'> {
-    adapter: Adapter
+    adapter: Adapter.Factory
   }
 
   export class DisposeError extends BaseException {
@@ -55,6 +56,14 @@ export interface Connection extends Adapter, Disposable {
   getDevtoolsUrl(): string
   /** Dispose the connection. */
   dispose(): Promise<void>
+  /** Generate a new identifier and return it. */
+  generateIdentifier(): number
+  /** Get the current identifier. */
+  getCurrentIdentifier(): number
+  /** Get the devtools port. */
+  getDevtoolsPort(): number
+  /** Get the control port. */
+  getControlPort(): number
 }
 
 export async function createConnection(options: Connection.Options): Promise<Connection> {
@@ -71,25 +80,60 @@ export async function createConnection(options: Connection.Options): Promise<Con
   await sleep(1_000)
   await bindPort(resolvedOptions.controlPort, `ark:${pid}@Debugger`)
 
-  return new ConnectionImpl(resolvedOptions, pid)
+  const connection = new ConnectionImpl(resolvedOptions, pid)
+  const adapter = await resolvedOptions.adapter.onInitialize?.(connection, resolvedOptions)
+  connection.setAdapter(adapter)
+  return connection
 }
 
-class ConnectionImpl implements Connection {
+class ConnectionImpl extends IdentifierGenerator implements Connection {
   constructor(
     private readonly options: Connection.ResolvedOptions,
     private readonly pid: string,
-  ) {}
+  ) { super() }
 
-  async getDebuggerAdapter(): Promise<Adapter.Debugger> {
-    return await this.options.adapter.getDebuggerAdapter()
+  private _adapter: Adapter | undefined
+
+  setAdapter(adapter: Adapter): this {
+    this._adapter = adapter
+    return this
   }
 
-  getRuntimeAdapter(): Awaitable<Adapter.Runtime> {
-    return this.options.adapter.getRuntimeAdapter()
+  getConnection(): Connection {
+    return this
+  }
+
+  getAdapter(): Adapter {
+    if (!this._adapter) throw new Error('Adapter not initialized')
+    return this._adapter
+  }
+
+  sendRequest<Id extends number = number, Params = unknown, Result = unknown, ErrorData = unknown>(request: Adapter.OptionalNotification<Id, Params>): Promise<Adapter.Response<Id, Result> | Adapter.Error<Id, ErrorData>> {
+    return this.getAdapter().sendRequest(request)
+  }
+
+  sendNotification<Id extends number = number, Params = unknown>(notification: Adapter.OptionalNotification<Id, Params>): Promise<void> {
+    return this.getAdapter().sendNotification(notification)
+  }
+
+  async getDebuggerAdapter(): Promise<Adapter.Debugger> {
+    return this.getAdapter().getDebuggerAdapter()
+  }
+
+  async getRuntimeAdapter(): Promise<Adapter.Runtime> {
+    return this.getAdapter().getRuntimeAdapter()
   }
 
   getPid(): string {
     return this.pid
+  }
+
+  getDevtoolsPort(): number {
+    return this.options.devtoolsPort
+  }
+
+  getControlPort(): number {
+    return this.options.controlPort
   }
 
   getIdentifier(): string {

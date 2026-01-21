@@ -3,15 +3,15 @@
 <html lang="en">
 
 <head>
-    <title>Code coverage report for src/adapters/ws/runtime.ts</title>
+    <title>Code coverage report for src/errors/json-exception.ts</title>
     <meta charset="utf-8" />
-    <link rel="stylesheet" href="../../../prettify.css" />
-    <link rel="stylesheet" href="../../../base.css" />
-    <link rel="shortcut icon" type="image/x-icon" href="../../../favicon.png" />
+    <link rel="stylesheet" href="../../prettify.css" />
+    <link rel="stylesheet" href="../../base.css" />
+    <link rel="shortcut icon" type="image/x-icon" href="../../favicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <style type='text/css'>
         .coverage-summary .sorter {
-            background-image: url(../../../sort-arrow-sprite.png);
+            background-image: url(../../sort-arrow-sprite.png);
         }
     </style>
 </head>
@@ -19,34 +19,34 @@
 <body>
 <div class='wrapper'>
     <div class='pad1'>
-        <h1><a href="../../../index.html">All files</a> / <a href="index.html">src/adapters/ws</a> runtime.ts</h1>
+        <h1><a href="../../index.html">All files</a> / <a href="index.html">src/errors</a> json-exception.ts</h1>
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">50% </span>
+                <span class="strong">55.55% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>1/2</span>
+                <span class='fraction'>5/9</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">75% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/0</span>
+                <span class='fraction'>3/4</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">50% </span>
+                <span class="strong">66.66% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>1/2</span>
+                <span class='fraction'>2/3</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">50% </span>
+                <span class="strong">71.42% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>1/2</span>
+                <span class='fraction'>5/7</span>
             </div>
         
             
@@ -76,30 +76,36 @@
 <a name='L11'></a><a href='#L11'>11</a>
 <a name='L12'></a><a href='#L12'>12</a>
 <a name='L13'></a><a href='#L13'>13</a>
-<a name='L14'></a><a href='#L14'>14</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L14'></a><a href='#L14'>14</a>
+<a name='L15'></a><a href='#L15'>15</a>
+<a name='L16'></a><a href='#L16'>16</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import type { Adapter } from '../../adapter'
-import type { WsAdapterImpl } from './adapter'
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { BaseException } from './base-exception'
 &nbsp;
-export class WsRuntimeAdapter implements Adapter.Runtime {
-  constructor(private readonly adapter: WsAdapterImpl) {}
+export class JsonException extends BaseException {
+<span class="fstat-no" title="function not covered" >  constructor(public readonly <span class="cstat-no" title="statement not covered" >m</span>essage: string, public readonly <span class="cstat-no" title="statement not covered" >t</span>ype: JsonException.Type, public readonly <span class="cstat-no" title="statement not covered" >c</span>ause?: unknown) {</span>
+<span class="cstat-no" title="statement not covered" >    super(message)</span>
+  }
+}
 &nbsp;
-<span class="fstat-no" title="function not covered" >  enable&lt;Id extends number = number&gt;(r</span>equest: Adapter.Runtime.Enable.Request&lt;Id&gt;): Promise&lt;Adapter.Runtime.Enable.Response&lt;Id&gt; | Adapter.Error&lt;Id&gt;&gt; {
-<span class="cstat-no" title="statement not covered" >    return this.adapter.sendRequest({</span>
-      ...request,
-      method: 'Runtime.enable',
-    })
+export namespace <span class="branch-1 cbranch-no" title="branch not covered" >JsonException {</span>
+  export enum Type {
+    PARSE_ERROR = 'parse_error',
+    STRINGIFY_ERROR = 'stringify_error',
+    UNKNOWN_JSONRPC_RESPONSE = 'unknown_jsonrpc_response',
   }
 }
 &nbsp;</pre></td></tr></table></pre>
@@ -111,14 +117,14 @@ export class WsRuntimeAdapter implements Adapter.Runtime {
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
                 at 2026-01-21T17:01:58.614Z
             </div>
-        <script src="../../../prettify.js"></script>
+        <script src="../../prettify.js"></script>
         <script>
             window.onload = function () {
                 prettyPrint();
             };
         </script>
-        <script src="../../../sorter.js"></script>
-        <script src="../../../block-navigation.js"></script>
+        <script src="../../sorter.js"></script>
+        <script src="../../block-navigation.js"></script>
     </body>
 </html>
     
