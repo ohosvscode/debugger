@@ -13,7 +13,7 @@ export namespace Disposable {
   }
 
   export class Registry<T = void> implements Disposable<PromiseSettledResult<Awaited<T>>[]> {
-    private readonly _disposables: Disposable<T>[] = []
+    private _disposables: Disposable<T>[] = []
 
     push(...disposables: Disposable<T>[]): this {
       this._disposables.push(...disposables)
@@ -21,7 +21,9 @@ export namespace Disposable {
     }
 
     async dispose(): Promise<PromiseSettledResult<Awaited<T>>[]> {
-      return await Promise.allSettled(this._disposables.map(disposable => disposable.dispose()))
+      const results = await Promise.allSettled(this._disposables.map(disposable => disposable.dispose()))
+      this._disposables = []
+      return results
     }
 
     get length(): number {

@@ -7,7 +7,7 @@ import { Disposable } from './types'
 import { sleep } from './utils'
 
 export namespace Connection {
-  export interface Options {
+  export interface Options<TAdapter extends Adapter = Adapter> {
     /**
      * An adapter instance.
      *
@@ -20,7 +20,7 @@ export namespace Connection {
      * const connection = createConnection({ adapter, ... })
      * ```
      */
-    adapter: Awaitable<Adapter.Factory>
+    adapter: Awaitable<Adapter.Factory<TAdapter>>
     /** The identifier of the ArkTS application. @example `com.example.app` */
     identifier: `${string}.${string}.${string}`
     /** The ability name of the application. @default EntryAbility */
@@ -31,12 +31,14 @@ export namespace Connection {
     devtoolsPort?: number
   }
 
-  export interface ResolvedOptions extends Omit<Required<Options>, 'adapter'> {
-    adapter: Adapter.Factory
+  export interface ResolvedOptions<TAdapter extends Adapter = Adapter> extends Omit<Required<Options<TAdapter>>, 'adapter'> {
+    adapter: Adapter.Factory<TAdapter>
   }
 }
 
-export interface Connection extends Adapter, Disposable.Registry<unknown> {
+export interface Connection<TAdapter extends Adapter = Adapter> extends Adapter, Disposable.Registry<unknown> {
+  /** Get the adapter. */
+  getAdapter(): TAdapter
   /** The PID of the application. */
   getPid(): string
   /** The identifier of the application. */
@@ -55,7 +57,7 @@ export interface Connection extends Adapter, Disposable.Registry<unknown> {
   getControlPort(): number
 }
 
-export async function createConnection(options: Connection.Options): Promise<Connection> {
+export async function createConnection<TAdapter extends Adapter = Adapter>(options: Connection.Options<TAdapter>): Promise<Connection<TAdapter>> {
   const resolvedOptions = await resolveOptions(options)
 
   await forceClearPorts(resolvedOptions)
@@ -72,12 +74,12 @@ export async function createConnection(options: Connection.Options): Promise<Con
   const connection = new ConnectionImpl(resolvedOptions, pid)
   const adapter = await resolvedOptions.adapter.onInitialize?.(connection as Connection, resolvedOptions)
   connection.setAdapter(adapter)
-  return connection as Connection
+  return connection
 }
 
-class ConnectionImpl extends IdentifierGenerator implements Connection {
+class ConnectionImpl<TAdapter extends Adapter = Adapter> extends IdentifierGenerator implements Connection<TAdapter> {
   constructor(
-    private readonly options: Connection.ResolvedOptions,
+    private readonly options: Connection.ResolvedOptions<TAdapter>,
     private readonly pid: string,
   ) {
     super()
@@ -96,32 +98,31 @@ class ConnectionImpl extends IdentifierGenerator implements Connection {
   }
 
   onNotification<Id extends number = number, Params = unknown>(callback: (notification: Adapter.Notification<Id, Params> | JsonException) => void): Disposable {
-    return this.getAdapter().onNotification(callback)
+    return this.getAdapter()!.onNotification(callback)
   }
 
   onRequest<Id extends number = number, Result = unknown, ErrorData = unknown>(callback: (response: Adapter.Response<Id, Result> | Adapter.Error<Id, ErrorData> | JsonException) => void): Disposable {
-    return this.getAdapter().onRequest(callback)
+    return this.getAdapter()!.onRequest(callback)
   }
 
-  getAdapter(): Adapter {
-    if (!this._adapter) throw new Error('Adapter not initialized')
-    return this._adapter
+  getAdapter(): TAdapter {
+    return this._adapter as TAdapter
   }
 
   sendRequest<Id extends number = number, Params = unknown, Result = unknown, ErrorData = unknown>(request: Adapter.OptionalNotification<Id, Params>): Promise<Adapter.Response<Id, Result> | Adapter.Error<Id, ErrorData>> {
-    return this.getAdapter().sendRequest(request)
+    return this.getAdapter()!.sendRequest(request)
   }
 
   sendNotification<Id extends number = number, Params = unknown>(notification: Adapter.OptionalNotification<Id, Params>): Promise<void> {
-    return this.getAdapter().sendNotification(notification)
+    return this.getAdapter()!.sendNotification(notification)
   }
 
   async getDebuggerAdapter(): Promise<Adapter.Debugger> {
-    return this.getAdapter().getDebuggerAdapter()
+    return this.getAdapter()!.getDebuggerAdapter()
   }
 
   async getRuntimeAdapter(): Promise<Adapter.Runtime> {
-    return this.getAdapter().getRuntimeAdapter()
+    return this.getAdapter()!.getRuntimeAdapter()
   }
 
   getPid(): string {
@@ -154,7 +155,7 @@ class ConnectionImpl extends IdentifierGenerator implements Connection {
   }
 }
 
-export async function resolveOptions(options: Connection.Options): Promise<Connection.ResolvedOptions> {
+export async function resolveOptions<TAdapter extends Adapter = Adapter>(options: Connection.Options<TAdapter>): Promise<Connection.ResolvedOptions<TAdapter>> {
   return {
     ...options,
     adapter: await options.adapter,

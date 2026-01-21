@@ -1,9 +1,11 @@
 import type { Connection } from '../src'
+import type { WsAdapter } from '../src/ws'
+import WebSocket from 'ws'
 import { Adapter, createConnection } from '../src'
 import { createWsAdapter } from '../src/ws'
 
 describe('connection', (it) => {
-  let connection: Connection
+  let connection: Connection<WsAdapter>
   let debuggerAdapter: Adapter.Debugger
 
   it.sequential('should create a connection', async () => {
@@ -32,7 +34,10 @@ describe('connection', (it) => {
     console.warn(response.result)
   })
 
-  afterAll(async () => {
+  it.sequential('should dispose the connection', async () => {
     await connection.dispose()
+    expect(connection.length).toBe(0)
+    expect(connection.getAdapter().getControlWebSocket()?.readyState).toBe(WebSocket.CLOSED)
+    expect(connection.getAdapter().getKeepAliveWebSocket()?.readyState).toBe(WebSocket.CLOSED)
   })
 })

@@ -1,7 +1,6 @@
 import type { Adapter } from '../../adapter'
 import type { Connection } from '../../connection'
 import type { JsonException } from '../../errors/json-exception'
-import type { Awaitable } from '../../types'
 import WebSocket from 'ws'
 import { BaseAdapter } from '../../base-adapter'
 import { Disposable } from '../../types'
@@ -9,7 +8,7 @@ import { JSONPromiseify } from '../../utils'
 import { WsDebuggerAdapter } from './debugger'
 import { WsRuntimeAdapter } from './runtime'
 
-export class WsAdapterImpl extends BaseAdapter implements Adapter {
+export class WsAdapterImpl extends BaseAdapter implements WsAdapter {
   private readonly _debuggerAdapter = new WsDebuggerAdapter(this)
   private readonly _runtimeAdapter = new WsRuntimeAdapter(this)
 
@@ -97,32 +96,60 @@ export class WsAdapterImpl extends BaseAdapter implements Adapter {
       this.ws.on('message', onMessage)
     })
   }
-
-  dispose(): Awaitable<void> {
-    this.ws?.close()
-    this.keepAlive?.close()
-  }
 }
 
 export namespace WsAdapter {
-  export interface Options {
-    host?: string
-    protocol?: 'ws' | 'wss' | (string & {})
-  }
+  export type WebSocketProtocol = 'ws' | 'wss'
+  export type WebSocketURLString = `${WebSocketProtocol}://${string}`
+  export interface Options extends Omit<URL, 'toJSON' | 'port'> {}
 
   export interface ResolvedOptions extends Required<Options> {}
 }
 
-export async function createWsAdapter(options: WsAdapter.Options = {}): Promise<Adapter.Factory> {
+export interface WsAdapter extends Adapter {
+  /**
+   * Get the resolved options.
+   */
+  getResolvedOptions(): WsAdapter.ResolvedOptions
+  /**
+   * Get control web socket.
+   */
+  getControlWebSocket(): WebSocket | undefined
+  /**
+   * Get keep alive web socket.
+   */
+  getKeepAliveWebSocket(): WebSocket | undefined
+}
+
+/**
+ * Create a WebSocket adapter using `ws`.
+ *
+ * @param options - The options to create the adapter. Except for the `port`, all other options are extended from the {@linkcode URL} instance.
+ * If you provide the `port` it will be ignored. Please use the `createConnection` function to provide the `Devtools Port` and `Control Port`.
+ */
+export async function createWsAdapter(options?: WsAdapter.Options): Promise<Adapter.Factory<WsAdapter>>
+/**
+ * Create a WebSocket adapter using `ws`.
+ *
+ * @param websocketUrlNotPortString - The WebSocket URL string without the `port`. If you still provide the port, it will be ignored.
+ * Please use the `createConnection` function to provide the `Devtools Port` and `Control Port`.
+ */
+export async function createWsAdapter<TWebSocketURLString extends string>(
+  websocketUrlNotPortString?: TWebSocketURLString extends `${WsAdapter.WebSocketProtocol}://${string}:${number}`
+    ? never
+    : TWebSocketURLString,
+): Promise<Adapter.Factory<WsAdapter>>
+export async function createWsAdapter(options: WsAdapter.Options | WsAdapter.WebSocketURLString = new URL('ws://localhost')): Promise<Adapter.Factory<WsAdapter>> {
   const resolvedOptions = resolveOptions(options)
+
   return {
     onInitialize(connection) {
       // 9229: DevTools UI/保活通道；先连上并发送握手，保持后端不断线
-      const keepAlive = new WebSocket(`${resolvedOptions.protocol}://${resolvedOptions.host}:${connection.getDevtoolsPort()}`)
+      const keepAlive = new WebSocket(resolveUrl(resolvedOptions, connection.getDevtoolsPort()).toString())
       keepAlive.on('open', () => keepAlive.send(JSON.stringify({ type: 'connected' })))
 
       // 9230: 控制/调试通道（Chrome 亦连接此端口）
-      const ws = new WebSocket(`${resolvedOptions.protocol}://${resolvedOptions.host}:${connection.getControlPort()}`)
+      const ws = new WebSocket(resolveUrl(resolvedOptions, connection.getControlPort()))
 
       return new Promise((resolve, reject) => {
         function handleOpen() {
@@ -140,14 +167,50 @@ export async function createWsAdapter(options: WsAdapter.Options = {}): Promise<
 
         ws.on('open', handleOpen)
         ws.on('error', handleError)
+
+        connection.push(
+          Disposable.from(() => {
+            ws.close()
+            keepAlive.close()
+          }),
+        )
       })
     },
   }
 }
 
-function resolveOptions(options: WsAdapter.Options): WsAdapter.ResolvedOptions {
+function resolveOptions(options: WsAdapter.WebSocketURLString | WsAdapter.Options): WsAdapter.ResolvedOptions {
+  if (typeof options === 'string') return new URL(options)
+
   return {
+    hash: options.hash,
     host: options.host ?? 'localhost',
-    protocol: options.protocol ?? 'ws',
+    hostname: options.hostname,
+    href: options.href,
+    origin: options.origin,
+    password: options.password,
+    pathname: options.pathname,
+    protocol: options.protocol,
+    search: options.search,
+    searchParams: options.searchParams,
+    username: options.username,
   }
+}
+
+function resolveUrl(resolvedOptions: WsAdapter.ResolvedOptions, port: number): URL {
+  const url = new URL('ws://127.0.0.1')
+  url.hash = resolvedOptions.hash
+  url.host = resolvedOptions.host
+  url.hostname = resolvedOptions.hostname
+  url.href = resolvedOptions.href
+  url.password = resolvedOptions.password
+  url.pathname = resolvedOptions.pathname
+  url.port = port.toString()
+  url.protocol = resolvedOptions.protocol
+  url.search = resolvedOptions.search
+  for (const [key, value] of resolvedOptions.searchParams.entries()) {
+    url.searchParams.set(key, value)
+  }
+  url.username = resolvedOptions.username
+  return url
 }

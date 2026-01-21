@@ -105,8 +105,8 @@ export namespace Adapter {
     }
   }
 
-  export interface Factory extends Partial<Disposable> {
-    onInitialize(connection: Connection, options: Connection.ResolvedOptions): Awaitable<Adapter>
+  export interface Factory<TAdapter extends Adapter = Adapter> extends Partial<Disposable> {
+    onInitialize(connection: Connection, options: Connection.ResolvedOptions): Awaitable<TAdapter>
   }
 
   export interface Location {
