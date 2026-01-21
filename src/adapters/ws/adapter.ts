@@ -47,8 +47,8 @@ export class WsAdapterImpl extends BaseAdapter implements Adapter {
   }
 
   onRequest<Id extends number = number, Result = unknown, ErrorData = unknown>(callback: (response: Adapter.Response<Id, Result> | Adapter.Error<Id, ErrorData> | JsonException) => void): Disposable {
-    const onRequest = async (message: WebSocket.MessageEvent) => {
-      const response = await this.handleOnRequest<Id, Result, ErrorData>(message)
+    const onRequest = async (message: WebSocket.RawData) => {
+      const response = await this.handleOnRequest<Id, Result, ErrorData>(typeof message === 'string' ? message : message.toString())
       if (response) callback(response)
     }
 
@@ -60,8 +60,8 @@ export class WsAdapterImpl extends BaseAdapter implements Adapter {
   }
 
   onNotification<Id extends number = number, Params = unknown>(callback: (notification: Adapter.Notification<Id, Params> | JsonException) => void): Disposable {
-    const onNotification = async (message: WebSocket.MessageEvent) => {
-      const notification = await this.handleOnNotification<Id, Params>(message)
+    const onNotification = async (message: WebSocket.RawData) => {
+      const notification = await this.handleOnNotification<Id, Params>(typeof message === 'string' ? message : message.toString())
       if (notification) callback(notification)
     }
 
@@ -89,8 +89,8 @@ export class WsAdapterImpl extends BaseAdapter implements Adapter {
     await this.sendNotification({ id, method: request.method, params: request.params })
 
     return new Promise((resolve) => {
-      const onMessage = async (message: WebSocket.MessageEvent) => {
-        const response = await this.handleSendRequest<Id, Result, ErrorData>(message)
+      const onMessage = async (message: WebSocket.RawData) => {
+        const response = await this.handleSendRequest<Id, Result, ErrorData>(typeof message === 'string' ? message : message.toString())
         if (response) resolve(response)
         this.ws.off('message', onMessage)
       }
