@@ -5,12 +5,12 @@ import { Adapter, createConnection } from '../src'
 import { createWsAdapter } from '../src/ws'
 
 describe('connection', (it) => {
-  let connection: Connection<WsAdapter>
+  let connection: Connection<WsAdapter<'ws://localhost'>>
   let debuggerAdapter: Adapter.Debugger
 
   it.sequential('should create a connection', async () => {
     connection = await createConnection({
-      adapter: createWsAdapter(),
+      adapter: createWsAdapter('ws://localhost'),
       identifier: 'cc.naily.myapplication',
     })
     expect(connection.getPid()).toBeDefined()

@@ -100,21 +100,24 @@ export class WsAdapterImpl extends BaseAdapter implements WsAdapter {
 }
 
 export namespace WsAdapter {
-  export interface Options extends Omit<URL, 'toJSON' | 'port'> {
+  export interface Options extends Partial<Omit<URL, 'toJSON' | 'port'>> {
     devtoolsWebSocketOptions?: WebSocket.ClientOptions | ClientRequestArgs
     controlWebSocketOptions?: WebSocket.ClientOptions | ClientRequestArgs
     devtoolsWebSocketProtocols?: string[]
     controlWebSocketProtocols?: string[]
   }
-  export interface ResolvedOptions extends Omit<Required<Options>, 'devtoolsWebSocketOptions' | 'controlWebSocketOptions' | 'devtoolsWebSocketProtocols' | 'controlWebSocketProtocols'> {
+  export interface ResolvedOptions extends Options {
     devtoolsWebSocketOptions?: WebSocket.ClientOptions | ClientRequestArgs
     controlWebSocketOptions?: WebSocket.ClientOptions | ClientRequestArgs
     devtoolsWebSocketProtocols?: string[]
     controlWebSocketProtocols?: string[]
+  }
+  export interface TypedWebSocket<TWebSocketUrlNotPortString extends string = string> extends Omit<WebSocket, 'url'> {
+    readonly url: TWebSocketUrlNotPortString
   }
 }
 
-export interface WsAdapter extends Adapter {
+export interface WsAdapter<in out TWebSocketUrlNotPortString extends string = string> extends Adapter {
   /**
    * Get the resolved options.
    */
@@ -122,11 +125,11 @@ export interface WsAdapter extends Adapter {
   /**
    * Get control web socket.
    */
-  getControlWebSocket(): WebSocket | undefined
+  getControlWebSocket(): WsAdapter.TypedWebSocket<TWebSocketUrlNotPortString> | undefined
   /**
    * Get keep alive web socket.
    */
-  getKeepAliveWebSocket(): WebSocket | undefined
+  getKeepAliveWebSocket(): WsAdapter.TypedWebSocket<TWebSocketUrlNotPortString> | undefined
 }
 
 /**
@@ -142,7 +145,7 @@ export async function createWsAdapter(options?: WsAdapter.Options): Promise<Adap
  * @param websocketUrlNotPortString - The WebSocket URL string without the `port`. If you still provide the port, it will be ignored.
  * Please use the `createConnection` function to provide the `Devtools Port` and `Control Port`.
  */
-export async function createWsAdapter(websocketUrlNotPortString?: string): Promise<Adapter.Factory<WsAdapter>>
+export async function createWsAdapter<TWebSocketUrlNotPortString extends string = string>(websocketUrlNotPortString?: TWebSocketUrlNotPortString): Promise<Adapter.Factory<WsAdapter<TWebSocketUrlNotPortString>>>
 export async function createWsAdapter(options: WsAdapter.Options | string = new URL('ws://localhost')): Promise<Adapter.Factory<WsAdapter>> {
   const resolvedOptions = resolveOptions(options)
 
@@ -219,18 +222,20 @@ function resolveOptions(options: WsAdapter.Options | string): WsAdapter.Resolved
 
 function resolveUrl(resolvedOptions: WsAdapter.ResolvedOptions, port: number): URL {
   const url = new URL('ws://127.0.0.1')
-  url.hash = resolvedOptions.hash
-  url.host = resolvedOptions.host
-  url.hostname = resolvedOptions.hostname
-  url.href = resolvedOptions.href
-  url.password = resolvedOptions.password
-  url.pathname = resolvedOptions.pathname
+  if (resolvedOptions.hash) url.hash = resolvedOptions.hash
+  if (resolvedOptions.host) url.host = resolvedOptions.host
+  if (resolvedOptions.hostname) url.hostname = resolvedOptions.hostname
+  if (resolvedOptions.href) url.href = resolvedOptions.href
+  if (resolvedOptions.password) url.password = resolvedOptions.password
+  if (resolvedOptions.pathname) url.pathname = resolvedOptions.pathname
   url.port = port.toString()
-  url.protocol = resolvedOptions.protocol
-  url.search = resolvedOptions.search
-  for (const [key, value] of resolvedOptions.searchParams.entries()) {
-    url.searchParams.set(key, value)
+  if (resolvedOptions.protocol) url.protocol = resolvedOptions.protocol
+  if (resolvedOptions.search) url.search = resolvedOptions.search
+  if (resolvedOptions.searchParams) {
+    for (const [key, value] of resolvedOptions.searchParams.entries()) {
+      url.searchParams.set(key, value)
+    }
   }
-  url.username = resolvedOptions.username
+  if (resolvedOptions.username) url.username = resolvedOptions.username
   return url
 }
