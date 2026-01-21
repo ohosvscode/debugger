@@ -120,21 +120,29 @@ export namespace Adapter {
     disable<Id extends number = number>(request: Adapter.Debugger.Disable.Request<Id>): Promise<void>
     removeBreakpointsByUrl<Id extends number = number>(request: Adapter.Debugger.RemoveBreakpointsByUrl.Request<Id>): Promise<Adapter.Debugger.RemoveBreakpointsByUrl.Response<Id> | Adapter.Error<Id>>
     getPossibleAndSetBreakpointByUrl<Id extends number = number>(request: Adapter.Debugger.GetPossibleAndSetBreakpointByUrl.Request<Id>): Promise<Adapter.Debugger.GetPossibleAndSetBreakpointByUrl.Response<Id> | Adapter.Error<Id>>
+    saveAllPossibleBreakpoints<Id extends number = number>(request: Adapter.Debugger.SaveAllPossibleBreakpoints.Request<Id>): Promise<Adapter.Debugger.SaveAllPossibleBreakpoints.Response<Id> | Adapter.Error<Id>>
   }
 
   export interface Runtime {
     enable<Id extends number = number>(request: Adapter.Runtime.Enable.Request<Id>): Promise<Adapter.Runtime.Enable.Response<Id> | Adapter.Error<Id>>
+    runIfWaitingForDebugger<Id extends number = number>(request: Adapter.Runtime.RunIfWaitingForDebugger.Request<Id>): Promise<Adapter.Runtime.RunIfWaitingForDebugger.Response<Id> | Adapter.Error<Id>>
   }
 
   export namespace Runtime {
     export namespace Enable {
-      export interface Request<Id extends number = number> extends Adapter.OptionalRequest<Id, void> {}
+      export interface Request<Id extends number = number> extends Adapter.OptionalRequest<Id, Record<never, never>> {}
 
       export interface Result {
         protocols: unknown[]
       }
 
       export interface Response<Id extends number = number> extends Adapter.Response<Id, Result> {}
+    }
+
+    export namespace RunIfWaitingForDebugger {
+      export interface Request<Id extends number = number> extends Adapter.OptionalRequest<Id, Record<never, never>> {}
+
+      export interface Response<Id extends number = number> extends Adapter.Response<Id, Record<never, never>> {}
     }
   }
 
@@ -163,6 +171,15 @@ export namespace Adapter {
       export interface Request<Id extends number = number> extends Adapter.OptionalRequest<Id, Record<never, never>> {}
     }
 
+    export namespace SaveAllPossibleBreakpoints {
+      export interface Params {
+        locations: Record<never, never>
+      }
+
+      export interface Request<Id extends number = number> extends Adapter.OptionalRequest<Id, Params> {}
+      export interface Response<Id extends number = number> extends Adapter.Response<Id, Record<never, never>> {}
+    }
+
     export namespace GetPossibleAndSetBreakpointByUrl {
       export interface Params {
         locations: Adapter.Location[]
@@ -184,7 +201,7 @@ export namespace Adapter {
 
       export interface Request<Id extends number = number> extends Adapter.OptionalRequest<Id, Params> {}
 
-      export interface Response<Id extends number = number> extends Adapter.Response<Id, void> {}
+      export interface Response<Id extends number = number> extends Adapter.Response<Id, Record<never, never>> {}
     }
   }
 }

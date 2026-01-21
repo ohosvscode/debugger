@@ -10,4 +10,11 @@ export class WsRuntimeAdapter implements Adapter.Runtime {
       method: 'Runtime.enable',
     })
   }
+
+  runIfWaitingForDebugger<Id extends number = number>(request: Adapter.Runtime.RunIfWaitingForDebugger.Request<Id>): Promise<Adapter.Runtime.RunIfWaitingForDebugger.Response<Id> | Adapter.Error<Id>> {
+    return this.adapter.sendRequest({
+      ...request,
+      method: 'Runtime.runIfWaitingForDebugger',
+    })
+  }
 }

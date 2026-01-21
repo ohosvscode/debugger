@@ -33,6 +33,13 @@ export class WsDebuggerAdapter implements Adapter.Debugger {
     })
   }
 
+  saveAllPossibleBreakpoints<Id extends number = number>(request: Adapter.Debugger.SaveAllPossibleBreakpoints.Request<Id>): Promise<Adapter.Debugger.SaveAllPossibleBreakpoints.Response<Id> | Adapter.Error<Id, unknown>> {
+    return this.adapter.sendRequest({
+      ...request,
+      method: 'Debugger.saveAllPossibleBreakpoints',
+    })
+  }
+
   dispose(): Awaitable<void> {
     this.disable({
       id: this.adapter.getConnection().generateIdentifier(),
