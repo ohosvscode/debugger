@@ -2,6 +2,6 @@
 
 Debugger for OpenHarmony/HarmonyOS applications.
 
-![ArkTS Debugger](./assets/usage_high.gif)
+![ArkTS Debugger](./assets/usage_small.gif)
 
 > Working in progress...
