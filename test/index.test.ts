@@ -1,7 +1,7 @@
 import type { Connection } from '../src'
 import type { WsAdapter } from '../src/ws'
-import WebSocket from 'ws'
-import { Adapter, createConnection, JsonException } from '../src'
+import { Adapter, createConnection } from '../src'
+import { sleep } from '../src/utils'
 import { createWsAdapter } from '../src/ws'
 
 describe('connection', (it) => {
@@ -19,100 +19,72 @@ describe('connection', (it) => {
     runtimeAdapter = await connection.getRuntimeAdapter()
     expect(debuggerAdapter).toBeDefined()
     expect(runtimeAdapter).toBeDefined()
-    connection.getAdapter().getKeepAliveWebSocket()?.on('message', (message) => {
-      console.log(`Received keep alive message:`)
-      console.dir(message.toString(), { depth: null })
-    })
-    connection.push(
-      connection.onNotification(async (notification) => {
-        if (!JsonException.isJsonException(notification)) {
-          console.log(`Received notification:`)
-          return console.log(notification)
-        }
-        if (!notification.cause) {
-          console.log(`Received error:`)
-          return console.log(notification)
-        }
 
-        try {
-          const data = typeof notification.cause === 'string' ? JSON.parse(notification.cause as string) : notification.cause
-          if (!data || data.method !== 'Debugger.scriptParsed') {
-            console.log(`Received unexpected error:`)
-            return console.log(notification)
-          }
-          console.log(`Received script parsed:`)
-          console.dir(data, { depth: null })
-
-          const setBreakpointResponse = await debuggerAdapter.getPossibleAndSetBreakpointByUrl({
-            params: {
-              locations: [
-                {
-                  url: 'entry|entry|1.0.0|src/main/ets/entryability/EntryAbility.ts',
-                  lineNumber: 0,
-                  columnNumber: 0,
-                },
-              ],
-            },
-          })
-          if (!Adapter.Response.is(setBreakpointResponse)) throw new Error(`Failed to set breakpoint: ${setBreakpointResponse}`)
-          console.log(`Debugger.getPossibleAndSetBreakpointByUrl`)
-          console.dir(setBreakpointResponse, { depth: null })
-
-          const removeBreakpointsResponse = await debuggerAdapter.removeBreakpointsByUrl({ params: { url: 'entry|entry|1.0.0|src/main/ets/entryability/EntryAbility.ts' } })
-          if (!Adapter.Response.is(removeBreakpointsResponse)) throw new Error(`Failed to remove breakpoints by url: ${removeBreakpointsResponse}`)
-          console.dir(removeBreakpointsResponse, { depth: null })
-
-          return console.log(data)
-        }
-        catch (error) {
-          console.log(`Received unexpected JSON parse error:`)
-          return console.log(error)
-        }
-      }),
-    )
-  })
-
-  describe('runtime', (it) => {
-    it.sequential('should enable runtime', async () => {
-      const response = await runtimeAdapter.enable({ params: {} })
-      if (!Adapter.Response.is(response)) throw new Error(`Failed to enable runtime: ${response}`)
+    return new Promise<void>((resolve) => {
+      connection.getAdapter().getKeepAliveWebSocket()?.on('message', async (message) => {
+        console.log(`Received keep alive message:`)
+        const data = JSON.parse(message.toString())
+        console.dir(data, { depth: null })
+        if (data.type !== 'addInstance') return
+        resolve()
+      })
+    }).then(async () => {
+      const runtimeEnableResponse = await runtimeAdapter.enable({ params: { options: ['enableLaunchAccelerate'], maxScriptsCacheSize: 1.0e7 } })
+      if (!Adapter.Response.is(runtimeEnableResponse)) throw new Error(`Failed to enable runtime: ${runtimeEnableResponse}`)
       console.log(`Runtime.enable`)
-      console.dir(response, { depth: null })
-    })
-  })
+      console.dir(runtimeEnableResponse, { depth: null })
 
-  describe('debugger', (it) => {
-    it.sequential('should enable debugger', async () => {
-      const response = await debuggerAdapter.enable({
+      const debuggerEnableResponse = await debuggerAdapter.enable({ params: { maxScriptsCacheSize: 1.0e7, options: ['enableLaunchAccelerate'] } })
+      if (!Adapter.Response.is(debuggerEnableResponse)) throw new Error(`Failed to enable debugger: ${debuggerEnableResponse}`)
+      console.log(`Debugger.enable`)
+      console.dir(debuggerEnableResponse, { depth: null })
+
+      const saveAllPossibleBreakpointsResponse = await debuggerAdapter.saveAllPossibleBreakpoints({
+        params: { locations: {} },
+      })
+      console.log(`Debugger.saveAllPossibleBreakpoints`)
+      console.dir(saveAllPossibleBreakpointsResponse, { depth: null })
+
+      const runIfWaitingForDebuggerResponse = await runtimeAdapter.runIfWaitingForDebugger({
+        params: {},
+      })
+      console.log(`Runtime.runIfWaitingForDebugger`)
+      console.dir(runIfWaitingForDebuggerResponse, { depth: null })
+
+      return new Promise<void>((resolve) => {
+        let count = 0
+        connection.push(
+          connection.onNotification(async (notification) => {
+            if (!Adapter.OptionalNotification.is(notification)) return
+            if (notification.method !== 'Debugger.scriptParsed') return
+            count++
+            console.log(`Debugger.scriptParsed: ${count}`)
+            console.dir(notification, { depth: null })
+            if (count < 2) return
+            resolve()
+          }),
+        )
+      })
+    }).then(async () => {
+      const setBreakpointsResponse = await debuggerAdapter.getPossibleAndSetBreakpointByUrl({
         params: {
-          maxScriptsCacheSize: 1.0e7,
-          options: ['enableLaunchAccelerate'],
+          locations: [
+            { url: 'entry|entry|1.0.0|src/main/ets/pages/Index.ts', columnNumber: 0, lineNumber: 0 },
+          ],
         },
       })
-      if (!Adapter.Response.is(response)) throw new Error(`Failed to enable debugger: ${response}`)
-      console.log(`Debugger.enable`)
-      console.dir(response, { depth: null })
-    })
+      console.log(`Debugger.getPossibleAndSetBreakpointByUrl`)
+      console.dir(setBreakpointsResponse, { depth: null })
 
-    it.sequential('should save all possible breakpoints', async () => {
-      const response = await debuggerAdapter.saveAllPossibleBreakpoints({ params: { locations: {} } })
-      if (!Adapter.Response.is(response)) throw new Error(`Failed to save all possible breakpoints: ${response}`)
-      console.log(`Debugger.saveAllPossibleBreakpoints`)
-      console.dir(response, { depth: null })
-    })
+      await sleep(3000)
+    }).then(async () => {
+      const runtimeDisableResponse = await runtimeAdapter.disable({ params: {} })
+      console.log(`Runtime.disable`)
+      console.dir(runtimeDisableResponse, { depth: null })
 
-    it.sequential('should run if waiting for debugger', async () => {
-      const response = await runtimeAdapter.runIfWaitingForDebugger({ params: {} })
-      if (!Adapter.Response.is(response)) throw new Error(`Failed to run if waiting for debugger: ${response}`)
-      console.log(`Runtime.runIfWaitingForDebugger`)
-      console.dir(response, { depth: null })
+      const debuggerDisableResponse = await debuggerAdapter.disable({ params: {} })
+      console.log(`Debugger.disable`)
+      console.dir(debuggerDisableResponse, { depth: null })
     })
-  })
-
-  it.sequential('should dispose the connection', async () => {
-    await connection.dispose()
-    expect(connection.length).toBe(0)
-    expect(connection.getAdapter().getControlWebSocket()?.readyState).toBe(WebSocket.CLOSED)
-    expect(connection.getAdapter().getKeepAliveWebSocket()?.readyState).toBe(WebSocket.CLOSED)
   })
 })

@@ -3,7 +3,7 @@ import { JsonException } from './errors'
 import { JSONPromiseify } from './utils'
 
 export abstract class BaseAdapter {
-  protected async handleOnNotification<Id extends number = number, Params = unknown>(message: unknown): Promise<Adapter.Notification<Id, Params> | JsonException | null> {
+  protected async handleOnNotification<Id extends number = number, Params = unknown>(message: unknown): Promise<Adapter.OptionalNotification<Id, Params> | JsonException | null> {
     try {
       const data = typeof message === 'string' ? await JSONPromiseify.parse(message) : message
       if (Adapter.Response.is(data)) {
@@ -14,6 +14,9 @@ export abstract class BaseAdapter {
       }
       else if (Adapter.Notification.is(data)) {
         return data as Adapter.Notification<Id, Params>
+      }
+      else if (Adapter.OptionalNotification.is(data)) {
+        return data as Adapter.OptionalNotification<Id, Params>
       }
       else {
         return new JsonException(`Unknown JSON-RPC response.`, JsonException.Type.UNKNOWN_JSONRPC_RESPONSE, message)

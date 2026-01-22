@@ -38,7 +38,7 @@ export interface Adapter {
    * @param callback - The callback to call when a notification is received.
    * @returns A disposable that can be used to unregister the listener.
    */
-  onNotification<Id extends number = number, Params = unknown>(callback: (notification: Adapter.Notification<Id, Params> | JsonException) => void): Disposable
+  onNotification<Id extends number = number, Params = unknown>(callback: (notification: Adapter.OptionalNotification<Id, Params> | JsonException) => void): Disposable
 }
 
 export namespace Adapter {
@@ -69,6 +69,16 @@ export namespace Adapter {
 
   export interface OptionalNotification<Id extends number = number, Params = unknown> extends Omit<Adapter.Notification<Id, Params>, 'id'> {
     id?: Id
+  }
+
+  export namespace OptionalNotification {
+    export function is(value: unknown): value is Adapter.OptionalNotification {
+      return typeof value === 'object'
+        && value !== null
+        && 'method' in value
+        && typeof value.method === 'string'
+        && 'params' in value
+    }
   }
 
   export interface Response<Id extends number = number, Result = unknown> {
@@ -117,7 +127,7 @@ export namespace Adapter {
 
   export interface Debugger extends Partial<Disposable> {
     enable<Id extends number = number>(request: Adapter.Debugger.Enable.Request<Id>): Promise<Adapter.Debugger.Enable.Response<Id> | Adapter.Error<Id>>
-    disable<Id extends number = number>(request: Adapter.Debugger.Disable.Request<Id>): Promise<void>
+    disable<Id extends number = number>(request: Adapter.Debugger.Disable.Request<Id>): Promise<Adapter.Debugger.Disable.Response<Id> | Adapter.Error<Id>>
     removeBreakpointsByUrl<Id extends number = number>(request: Adapter.Debugger.RemoveBreakpointsByUrl.Request<Id>): Promise<Adapter.Debugger.RemoveBreakpointsByUrl.Response<Id> | Adapter.Error<Id>>
     getPossibleAndSetBreakpointByUrl<Id extends number = number>(request: Adapter.Debugger.GetPossibleAndSetBreakpointByUrl.Request<Id>): Promise<Adapter.Debugger.GetPossibleAndSetBreakpointByUrl.Response<Id> | Adapter.Error<Id>>
     saveAllPossibleBreakpoints<Id extends number = number>(request: Adapter.Debugger.SaveAllPossibleBreakpoints.Request<Id>): Promise<Adapter.Debugger.SaveAllPossibleBreakpoints.Response<Id> | Adapter.Error<Id>>
@@ -125,10 +135,16 @@ export namespace Adapter {
 
   export interface Runtime {
     enable<Id extends number = number>(request: Adapter.Runtime.Enable.Request<Id>): Promise<Adapter.Runtime.Enable.Response<Id> | Adapter.Error<Id>>
+    disable<Id extends number = number>(request: Adapter.Runtime.Disable.Request<Id>): Promise<Adapter.Runtime.Disable.Response<Id> | Adapter.Error<Id>>
     runIfWaitingForDebugger<Id extends number = number>(request: Adapter.Runtime.RunIfWaitingForDebugger.Request<Id>): Promise<Adapter.Runtime.RunIfWaitingForDebugger.Response<Id> | Adapter.Error<Id>>
   }
 
   export namespace Runtime {
+    export namespace Disable {
+      export interface Request<Id extends number = number> extends Adapter.OptionalRequest<Id, Record<never, never>> {}
+      export interface Response<Id extends number = number> extends Adapter.Response<Id, Record<never, never>> {}
+    }
+
     export namespace Enable {
       export interface Request<Id extends number = number> extends Adapter.OptionalRequest<Id, Record<never, never>> {}
 
@@ -169,6 +185,7 @@ export namespace Adapter {
 
     export namespace Disable {
       export interface Request<Id extends number = number> extends Adapter.OptionalRequest<Id, Record<never, never>> {}
+      export interface Response<Id extends number = number> extends Adapter.Response<Id, Record<never, never>> {}
     }
 
     export namespace SaveAllPossibleBreakpoints {

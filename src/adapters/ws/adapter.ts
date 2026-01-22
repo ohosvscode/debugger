@@ -59,7 +59,7 @@ export class WsAdapterImpl extends BaseAdapter implements WsAdapter {
     })
   }
 
-  onNotification<Id extends number = number, Params = unknown>(callback: (notification: Adapter.Notification<Id, Params> | JsonException) => void): Disposable {
+  onNotification<Id extends number = number, Params = unknown>(callback: (notification: Adapter.OptionalNotification<Id, Params> | JsonException) => void): Disposable {
     const onNotification = async (message: WebSocket.RawData) => {
       const notification = await this.handleOnNotification<Id, Params>(typeof message === 'string' ? message : message.toString())
       if (notification) callback(notification)

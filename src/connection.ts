@@ -97,7 +97,7 @@ class ConnectionImpl<TAdapter extends Adapter = Adapter> extends IdentifierGener
     return this as Connection
   }
 
-  onNotification<Id extends number = number, Params = unknown>(callback: (notification: Adapter.Notification<Id, Params> | JsonException) => void): Disposable {
+  onNotification<Id extends number = number, Params = unknown>(callback: (notification: Adapter.OptionalNotification<Id, Params> | JsonException) => void): Disposable {
     return this.getAdapter()!.onNotification(callback)
   }
 

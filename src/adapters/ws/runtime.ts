@@ -11,6 +11,13 @@ export class WsRuntimeAdapter implements Adapter.Runtime {
     })
   }
 
+  disable<Id extends number = number>(request: Adapter.Runtime.Disable.Request<Id>): Promise<Adapter.Runtime.Disable.Response<Id> | Adapter.Error<Id>> {
+    return this.adapter.sendRequest({
+      ...request,
+      method: 'Runtime.disable',
+    })
+  }
+
   runIfWaitingForDebugger<Id extends number = number>(request: Adapter.Runtime.RunIfWaitingForDebugger.Request<Id>): Promise<Adapter.Runtime.RunIfWaitingForDebugger.Response<Id> | Adapter.Error<Id>> {
     return this.adapter.sendRequest({
       ...request,

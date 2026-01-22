@@ -12,8 +12,8 @@ export class WsDebuggerAdapter implements Adapter.Debugger {
     })
   }
 
-  disable<Id extends number = number>(request: Adapter.Debugger.Disable.Request<Id>): Promise<void> {
-    return this.adapter.sendNotification({
+  disable<Id extends number = number>(request: Adapter.Debugger.Disable.Request<Id>): Promise<Adapter.Debugger.Disable.Response<Id> | Adapter.Error<Id, unknown>> {
+    return this.adapter.sendRequest({
       ...request,
       method: 'Debugger.disable',
     })
