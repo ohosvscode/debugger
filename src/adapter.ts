@@ -131,6 +131,8 @@ export namespace Adapter {
     removeBreakpointsByUrl<Id extends number = number>(request: Adapter.Debugger.RemoveBreakpointsByUrl.Request<Id>): Promise<Adapter.Debugger.RemoveBreakpointsByUrl.Response<Id> | Adapter.Error<Id>>
     getPossibleAndSetBreakpointByUrl<Id extends number = number>(request: Adapter.Debugger.GetPossibleAndSetBreakpointByUrl.Request<Id>): Promise<Adapter.Debugger.GetPossibleAndSetBreakpointByUrl.Response<Id> | Adapter.Error<Id>>
     saveAllPossibleBreakpoints<Id extends number = number>(request: Adapter.Debugger.SaveAllPossibleBreakpoints.Request<Id>): Promise<Adapter.Debugger.SaveAllPossibleBreakpoints.Response<Id> | Adapter.Error<Id>>
+    onScriptParsed<Id extends number = number>(callback: (notification: Adapter.Debugger.ScriptParsed.Notification<Id>) => void): Disposable
+    onScriptParsed<Id extends number = number>(callbacks: Adapter.Debugger.ScriptParsed.Callback<Id>, disposeWhenCountExceeded: number): Disposable
   }
 
   export interface Runtime {
@@ -219,6 +221,20 @@ export namespace Adapter {
       export interface Request<Id extends number = number> extends Adapter.OptionalRequest<Id, Params> {}
 
       export interface Response<Id extends number = number> extends Adapter.Response<Id, Record<never, never>> {}
+    }
+
+    export namespace ScriptParsed {
+      export interface Params {
+        scriptId: string
+        url: string
+      }
+
+      export interface Callback<Id extends number = number> {
+        onScriptParsed?(notification: Adapter.Debugger.ScriptParsed.Notification<Id>): void
+        onExceeded?(notifications: Adapter.Debugger.ScriptParsed.Notification<Id>[]): void
+      }
+
+      export interface Notification<Id extends number = number> extends Adapter.OptionalNotification<Id, Params> {}
     }
   }
 }

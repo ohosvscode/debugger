@@ -31,7 +31,9 @@
   "dependencies": {
     "@types/ws": "^8.18.1",
     "mitt": "^3.0.1",
+    "source-map": "^0.7.6",
     "vitest": "^4.0.17",
+    "vscode-languageserver-textdocument": "^1.0.12",
     "ws": "^8.19.0"
   },
   "devDependencies": {

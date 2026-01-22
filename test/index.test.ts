@@ -5,14 +5,15 @@ import { sleep } from '../src/utils'
 import { createWsAdapter } from '../src/ws'
 
 describe('connection', (it) => {
-  let connection: Connection<WsAdapter<'ws://localhost'>>
+  let connection: Connection<WsAdapter>
   let debuggerAdapter: Adapter.Debugger
   let runtimeAdapter: Adapter.Runtime
 
   it.sequential('should create a connection', async () => {
     connection = await createConnection({
-      adapter: createWsAdapter('ws://localhost'),
+      adapter: createWsAdapter(),
       identifier: 'cc.naily.myapplication',
+      abilityName: 'EntryAbility',
     })
     expect(connection.getPid()).toBeDefined()
     debuggerAdapter = await connection.getDebuggerAdapter()
@@ -21,7 +22,7 @@ describe('connection', (it) => {
     expect(runtimeAdapter).toBeDefined()
 
     return new Promise<void>((resolve) => {
-      connection.getAdapter().getKeepAliveWebSocket()?.on('message', async (message) => {
+      connection.getAdapter().getKeepAliveWebSocket().on('message', async (message) => {
         console.log(`Received keep alive message:`)
         const data = JSON.parse(message.toString())
         console.dir(data, { depth: null })
@@ -52,31 +53,41 @@ describe('connection', (it) => {
       console.dir(runIfWaitingForDebuggerResponse, { depth: null })
 
       return new Promise<void>((resolve) => {
-        let count = 0
         connection.push(
-          connection.onNotification(async (notification) => {
-            if (!Adapter.OptionalNotification.is(notification)) return
-            if (notification.method !== 'Debugger.scriptParsed') return
-            count++
-            console.log(`Debugger.scriptParsed: ${count}`)
-            console.dir(notification, { depth: null })
-            if (count < 2) return
-            resolve()
-          }),
+          debuggerAdapter.onScriptParsed({
+            onScriptParsed(notification) {
+              console.log(`Debugger.scriptParsed: ${notification.params.url}`)
+            },
+            async onExceeded(notifications) {
+              await sleep(3000)
+              for (const notification of notifications) {
+                const setBreakpointsResponse = await debuggerAdapter.getPossibleAndSetBreakpointByUrl({
+                  params: {
+                    locations: [
+                      { url: notification.params.url, columnNumber: 0, lineNumber: 0 },
+                    ],
+                  },
+                })
+                console.log(`Debugger.getPossibleAndSetBreakpointByUrl`)
+                console.dir(setBreakpointsResponse, { depth: null })
+              }
+
+              await sleep(1000)
+
+              for (const notification of notifications) {
+                const removeBreakpointsResponse = await debuggerAdapter.removeBreakpointsByUrl({
+                  params: {
+                    url: notification.params.url,
+                  },
+                })
+                console.log(`Debugger.removeBreakpointsByUrl`)
+                console.dir(removeBreakpointsResponse, { depth: null })
+              }
+              resolve()
+            },
+          }, 2),
         )
       })
-    }).then(async () => {
-      const setBreakpointsResponse = await debuggerAdapter.getPossibleAndSetBreakpointByUrl({
-        params: {
-          locations: [
-            { url: 'entry|entry|1.0.0|src/main/ets/pages/Index.ts', columnNumber: 0, lineNumber: 0 },
-          ],
-        },
-      })
-      console.log(`Debugger.getPossibleAndSetBreakpointByUrl`)
-      console.dir(setBreakpointsResponse, { depth: null })
-
-      await sleep(3000)
     }).then(async () => {
       const runtimeDisableResponse = await runtimeAdapter.disable({ params: {} })
       console.log(`Runtime.disable`)
@@ -86,5 +97,5 @@ describe('connection', (it) => {
       console.log(`Debugger.disable`)
       console.dir(debuggerDisableResponse, { depth: null })
     })
-  })
+  }, 10000)
 })

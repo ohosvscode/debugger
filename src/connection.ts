@@ -8,23 +8,12 @@ import { sleep } from './utils'
 
 export namespace Connection {
   export interface Options<TAdapter extends Adapter = Adapter> {
-    /**
-     * An adapter instance.
-     *
-     * @example
-     * ```typescript
-     * import { createWsAdapter } from '@arkts/debugger'
-     * import WebSocket from 'ws'
-     *
-     * const adapter = createWsAdapter(new WebSocket('ws://localhost:9229'))
-     * const connection = createConnection({ adapter, ... })
-     * ```
-     */
+    /** An adapter instance. */
     adapter: Awaitable<Adapter.Factory<TAdapter>>
     /** The identifier of the ArkTS application. @example `com.example.app` */
     identifier: `${string}.${string}.${string}`
     /** The ability name of the application. @default EntryAbility */
-    abilityName?: string
+    abilityName?: 'EntryAbility' | (string & {})
     /** The control port of the application. @default 9230 */
     controlPort?: number
     /** The devtools port of the application. @default 9229 */
@@ -57,6 +46,23 @@ export interface Connection<TAdapter extends Adapter = Adapter> extends Adapter,
   getControlPort(): number
 }
 
+/**
+ * Create a connection to the application.
+ *
+ * @example
+ * ```typescript
+ * import { createConnection } from '@arkts/debugger'
+ * import { createWsAdapter } from '@arkts/debugger/ws'
+ *
+ * const connection = await createConnection({
+ *   adapter: createWsAdapter(),
+ *   identifier: 'com.example.app',
+ * })
+ * ```
+ *
+ * @param options - The options for the connection.
+ * @returns The connection to the application.
+ */
 export async function createConnection<TAdapter extends Adapter = Adapter>(options: Connection.Options<TAdapter>): Promise<Connection<TAdapter>> {
   const resolvedOptions = await resolveOptions(options)
 

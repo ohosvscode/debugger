@@ -1,6 +1,7 @@
-import type { Adapter } from '../../adapter'
 import type { Awaitable } from '../../types'
 import type { WsAdapterImpl } from './adapter'
+import { Adapter } from '../../adapter'
+import { Disposable } from '../../types'
 
 export class WsDebuggerAdapter implements Adapter.Debugger {
   constructor(private readonly adapter: WsAdapterImpl) {}
@@ -38,6 +39,37 @@ export class WsDebuggerAdapter implements Adapter.Debugger {
       ...request,
       method: 'Debugger.saveAllPossibleBreakpoints',
     })
+  }
+
+  onScriptParsed<Id extends number = number>(callbacks: Adapter.Debugger.ScriptParsed.Callback<Id> | ((notification: Adapter.Debugger.ScriptParsed.Notification<Id>) => void), disposeWhenCountExceeded?: number): Disposable {
+    if (typeof callbacks === 'function') {
+      const disposable = this.adapter.onNotification((notification) => {
+        if (!Adapter.OptionalNotification.is(notification)) return
+        if (notification.method !== 'Debugger.scriptParsed') return
+        callbacks(notification as Adapter.Debugger.ScriptParsed.Notification<Id>)
+      })
+      return disposable
+    }
+    else if (typeof callbacks === 'object' && callbacks !== null) {
+      const notifications = new Set<Adapter.Debugger.ScriptParsed.Notification<Id>>()
+      const disposable = this.adapter.onNotification((notification) => {
+        if (!Adapter.OptionalNotification.is(notification)) return
+        if (notification.method !== 'Debugger.scriptParsed') return
+        notifications.add(notification as Adapter.Debugger.ScriptParsed.Notification<Id>)
+        callbacks.onScriptParsed?.(notification as Adapter.Debugger.ScriptParsed.Notification<Id>)
+        if (typeof disposeWhenCountExceeded === 'number' && notifications.size >= disposeWhenCountExceeded) {
+          callbacks.onExceeded?.(Array.from(notifications))
+          disposable.dispose()
+        }
+      })
+      return Disposable.from(() => {
+        disposable.dispose()
+        notifications.clear()
+      })
+    }
+    else {
+      throw new TypeError(`Invalid Debugger.ScriptParsed onScriptParsed() argument.`)
+    }
   }
 
   dispose(): Awaitable<void> {

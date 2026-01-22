@@ -17,7 +17,7 @@ export class WsAdapterImpl extends BaseAdapter implements WsAdapter {
     private readonly options: WsAdapter.ResolvedOptions,
     private readonly connection: Connection,
     private readonly ws: WebSocket,
-    private readonly keepAlive?: WebSocket,
+    private readonly keepAlive: WebSocket,
   ) {
     super()
   }
@@ -38,11 +38,11 @@ export class WsAdapterImpl extends BaseAdapter implements WsAdapter {
     return this._runtimeAdapter
   }
 
-  getControlWebSocket(): WebSocket | undefined {
+  getControlWebSocket(): WebSocket {
     return this.ws
   }
 
-  getKeepAliveWebSocket(): WebSocket | undefined {
+  getKeepAliveWebSocket(): WebSocket {
     return this.keepAlive
   }
 
@@ -125,11 +125,11 @@ export interface WsAdapter<in out TWebSocketUrlNotPortString extends string = st
   /**
    * Get control web socket.
    */
-  getControlWebSocket(): WsAdapter.TypedWebSocket<TWebSocketUrlNotPortString> | undefined
+  getControlWebSocket(): WsAdapter.TypedWebSocket<TWebSocketUrlNotPortString>
   /**
    * Get keep alive web socket.
    */
-  getKeepAliveWebSocket(): WsAdapter.TypedWebSocket<TWebSocketUrlNotPortString> | undefined
+  getKeepAliveWebSocket(): WsAdapter.TypedWebSocket<TWebSocketUrlNotPortString>
 }
 
 /**
