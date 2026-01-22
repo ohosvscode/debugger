@@ -2,6 +2,6 @@
 
 Debugger for OpenHarmony/HarmonyOS applications.
 
-<video src="./assets/usage.mov" controls></video>
+![ArkTS Debugger](./assets/usage_high.gif)
 
 > Working in progress...
