@@ -1,4 +1,5 @@
 import type { Connection } from '../connection'
+import type { CDPConnection } from './launch-request'
 import { DebugSession } from '@vscode/debugadapter'
 import { BreakpointStore } from './data/breakpoint-store'
 import { VariableStore } from './data/variable-store'
@@ -8,21 +9,25 @@ export abstract class AbstractDebugSession extends DebugSession {
   private readonly _logger = VscodeDebuggerAdapterLogger.from(this)
   private readonly _store = new VariableStore()
   private readonly _breakpointStore = new BreakpointStore()
-  private _connection: Connection | undefined
+  private _cdpConnection: CDPConnection | undefined
 
   getConnection(): Connection | undefined {
-    return this._connection
+    return this._cdpConnection?.getConnection()
   }
 
-  setConnection(connection: Connection): void {
-    this._connection = connection
+  readSourceMap(): CDPConnection.SourceMap[] | Error {
+    return this._cdpConnection?.createSourceMapReader() ?? []
+  }
+
+  setCDPConnection(cdpConnection: CDPConnection): void {
+    this._cdpConnection = cdpConnection
   }
 
   async disposeConnection(): Promise<void> {
-    await this._connection?.dispose()
+    await this.getConnection()?.dispose()
     this._store.dispose()
     this._breakpointStore.dispose()
-    this._connection = undefined
+    this._cdpConnection = undefined
   }
 
   getLogger(): VscodeDebuggerAdapterLogger {

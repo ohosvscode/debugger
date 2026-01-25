@@ -5,7 +5,8 @@
       "name": "Launch",
       "type": "arkts-debugger",
       "request": "launch",
-      "projectRoot": "${workspaceFolder}"
+      "projectRoot": "${workspaceFolder}",
+      "moduleName": "entry"
     }
   ]
 }

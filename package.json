@@ -46,6 +46,7 @@
     "test": "vitest --coverage --ui --globals"
   },
   "dependencies": {
+    "@jridgewell/source-map": "^0.3.11",
     "@types/ws": "^8.18.1",
     "@vscode/debugadapter": "^1.68.0",
     "@vscode/debugadapter-testsupport": "^1.68.0",

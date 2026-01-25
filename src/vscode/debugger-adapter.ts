@@ -1,8 +1,8 @@
 import type { DebugProtocol } from '@vscode/debugprotocol'
-import { InitializedEvent } from '@vscode/debugadapter'
+import { InitializedEvent, TerminatedEvent } from '@vscode/debugadapter'
 import { AbstractDebugSession } from './debug-session'
 import * as DisconnectRequest from './disconnect-request'
-import * as LaunchRequest from './launch-request'
+import { CDPConnection, Arguments as LaunchRequestArguments } from './launch-request'
 
 export class VscodeDebuggerAdapter extends AbstractDebugSession {
   protected async initializeRequest(response: DebugProtocol.InitializeResponse) {
@@ -10,24 +10,21 @@ export class VscodeDebuggerAdapter extends AbstractDebugSession {
     this.sendEvent(new InitializedEvent())
   }
 
-  protected async launchRequest(response: DebugProtocol.LaunchResponse, args: LaunchRequest.Arguments) {
-    const resolvedArgs = LaunchRequest.Arguments.resolve(args)
-    const identifier = LaunchRequest.Arguments.readIdentifierByProjectRoot(resolvedArgs.projectRoot)
+  protected async launchRequest(response: DebugProtocol.LaunchResponse, args: LaunchRequestArguments) {
+    const resolvedArgs = LaunchRequestArguments.resolve(args)
+    const identifier = LaunchRequestArguments.readIdentifierByProjectRoot(resolvedArgs.projectRoot)
     if (identifier instanceof Error) return this.sendErrorResponse(response, 400, identifier.message)
-    const cdp = await LaunchRequest.createCDPConnection(resolvedArgs, identifier, this)
-    this.setConnection(cdp.connection)
-    await cdp.connection.getDebuggerAdapter().then((debuggerAdapter) => {
-      debuggerAdapter.onScriptParsed(scriptParsed => this.getLogger().data('Script parsed:', scriptParsed))
-    })
+    const cdp = await CDPConnection.create(resolvedArgs, identifier, this)
+    this.setCDPConnection(cdp)
     await cdp.enable()
-    // await cdp.setInitialBreakpoints()
+    await cdp.setInitialBreakpoints()
     await cdp.runIfWaitingForDebugger()
     this.sendResponse(response)
   }
 
   protected setBreakPointsRequest(response: DebugProtocol.SetBreakpointsResponse, args: DebugProtocol.SetBreakpointsArguments): void {
     if (!args.source?.path) return this.sendErrorResponse(response, 400, 'Source path is required.')
-    for (const breakpoint of args.breakpoints ?? []) this.getBreakpointStore().add(args.source.path, breakpoint)
+    this.getBreakpointStore().set(args.source.path, args.breakpoints ?? [])
     this.sendResponse(response)
   }
 
@@ -35,6 +32,7 @@ export class VscodeDebuggerAdapter extends AbstractDebugSession {
     try {
       if (this.getConnection()) await DisconnectRequest.disposeConnection(this)
       this.sendResponse(response)
+      this.sendEvent(new TerminatedEvent())
     }
     catch (error) {
       this.sendErrorResponse(response, 500, error instanceof Error ? error.message : 'Unknown error')
@@ -47,7 +45,6 @@ export class VscodeDebuggerAdapter extends AbstractDebugSession {
   protected variablesRequest(response: DebugProtocol.VariablesResponse, args: DebugProtocol.VariablesArguments): void {
     const value = this.getVariableStore().get(args.variablesReference)
     if (!value) return this.sendErrorResponse(response, 400, 'Unknown variablesReference')
-
     response.body = {
       variables: Object.entries(value).map(
         ([name, v]) => ({

@@ -41,10 +41,20 @@
               "projectRoot": {
                 "type": "string",
                 "description": "Hvigor 项目根目录, 必填"
+              },
+              "moduleName": {
+                "type": "string",
+                "description": "模块名称，必填"
+              },
+              "sourceMapFilePath": {
+                "type": "string",
+                "description": "Source Map 文件路径。",
+                "default": "build/default/cache/default/default@CompileArkTS/esmodule/debug/sourceMaps.json"
               }
             },
             "required": [
-              "projectRoot"
+              "projectRoot",
+              "moduleName"
             ],
             "additionalProperties": true
           }

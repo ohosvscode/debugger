@@ -187,9 +187,7 @@ export async function createWsAdapter(options: WsAdapter.Options | string = new 
 
         connection.push(
           Disposable.from(() => {
-            console.log('dispose', ws)
             ws.close()
-            console.log('keepAlive close', keepAlive)
             keepAlive.close()
           }),
         )
