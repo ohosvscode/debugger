@@ -24,4 +24,11 @@ export class WsRuntimeAdapter implements Adapter.Runtime {
       method: 'Runtime.runIfWaitingForDebugger',
     })
   }
+
+  getProperties<Id extends number = number>(request: Adapter.Runtime.GetProperties.Request<Id>): Promise<Adapter.Runtime.GetProperties.Response<Id> | Adapter.Error<Id>> {
+    return this.adapter.sendRequest({
+      ...request,
+      method: 'Runtime.getProperties',
+    })
+  }
 }

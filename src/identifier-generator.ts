@@ -1,6 +1,6 @@
 import { Disposable } from './types'
 
-export abstract class IdentifierGenerator extends Disposable.Registry<unknown> {
+export class IdentifierGenerator extends Disposable.Registry<unknown> {
   private _id: number = 0
 
   generateIdentifier(): number {

@@ -1,8 +1,15 @@
+import type { Connection } from './connection'
 import { Adapter } from './adapter'
 import { JsonException } from './errors'
 import { JSONPromiseify } from './utils'
 
 export abstract class BaseAdapter {
+  constructor(protected readonly connection: Connection) {}
+
+  getConnection(): Connection {
+    return this.connection
+  }
+
   protected async handleOnNotification<Id extends number = number, Params = unknown>(message: unknown): Promise<Adapter.OptionalNotification<Id, Params> | JsonException | null> {
     try {
       const data = typeof message === 'string' ? await JSONPromiseify.parse(message) : message

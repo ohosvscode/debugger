@@ -1,0 +1,66 @@
+{
+  "publisher": "NailyZero",
+  "name": "vscode-naily-ets-debugger-test",
+  "displayName": "ArkTS Debugger Test",
+  "version": "0.0.1",
+  "main": "./extension.js",
+  "engines": {
+    "vscode": "^1.62.0"
+  },
+  "activationEvents": [
+    "onDebug"
+  ],
+  "contributes": {
+    "debuggers": [
+      {
+        "type": "arkts-debugger",
+        "label": "ArkTS Debugger (Test Inline)",
+        "languages": [
+          "javascript",
+          "typescript"
+        ],
+        "configurationAttributes": {
+          "launch": {
+            "type": "object",
+            "properties": {
+              "abilityName": {
+                "type": "string",
+                "description": "Ability 名称，默认 EntryAbility",
+                "default": "EntryAbility"
+              },
+              "controlPort": {
+                "type": "number",
+                "description": "控制端口，默认 9230",
+                "default": 9230
+              },
+              "devtoolsPort": {
+                "type": "number",
+                "description": "DevTools 端口，默认 9229",
+                "default": 9229
+              },
+              "projectRoot": {
+                "type": "string",
+                "description": "Hvigor 项目根目录, 必填"
+              }
+            },
+            "required": [
+              "projectRoot"
+            ],
+            "additionalProperties": true
+          }
+        },
+        "initialConfigurations": [
+          {
+            "name": "Attach ArkTS (inline)",
+            "type": "arkts-debugger",
+            "request": "launch",
+            "identifier": "cc.naily.myapplication",
+            "abilityName": "EntryAbility",
+            "program": "main.js",
+            "stopOnEntry": true
+          }
+        ]
+      }
+    ]
+  }
+}

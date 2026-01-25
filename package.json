@@ -19,25 +19,47 @@
       },
       "import": "./dist/ws.mjs",
       "require": "./dist/ws.cjs"
+    },
+    "./vscode": {
+      "types": {
+        "import": "./dist/vscode.d.mts",
+        "require": "./dist/vscode.d.cts"
+      },
+      "import": "./dist/vscode.mjs",
+      "require": "./dist/vscode.cjs"
+    },
+    "./bin": {
+      "types": {
+        "import": "./dist/bin.d.mts",
+        "require": "./dist/bin.d.cts"
+      },
+      "import": "./dist/bin.mjs",
+      "require": "./dist/bin.cjs"
     }
   },
   "main": "dist/index.cjs",
   "module": "dist/index.mjs",
   "types": "dist/index.d.cts",
   "scripts": {
-    "build": "tsdown --format esm,cjs src/index.ts src/ws.ts",
+    "build": "tsdown --format esm,cjs src/index.ts src/ws.ts src/vscode.ts src/bin.ts",
+    "watch": "tsdown --format esm,cjs --watch src/index.ts src/ws.ts src/vscode.ts src/bin.ts",
     "test": "vitest --coverage --ui --globals"
   },
   "dependencies": {
     "@types/ws": "^8.18.1",
+    "@vscode/debugadapter": "^1.68.0",
+    "@vscode/debugadapter-testsupport": "^1.68.0",
+    "@vscode/debugprotocol": "^1.68.0",
+    "consola": "^3.4.2",
+    "json5": "^2.2.3",
+    "kleur": "^4.1.5",
     "mitt": "^3.0.1",
-    "source-map": "^0.7.6",
     "vitest": "^4.0.17",
-    "vscode-languageserver-textdocument": "^1.0.12",
     "ws": "^8.19.0"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^7.2.0",
+    "@types/vscode": "^1.108.1",
     "@vitest/coverage-v8": "4.0.17",
     "@vitest/ui": "4.0.17",
     "eslint": "^9.39.2",

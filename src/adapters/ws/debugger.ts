@@ -1,4 +1,3 @@
-import type { Awaitable } from '../../types'
 import type { WsAdapterImpl } from './adapter'
 import { Adapter } from '../../adapter'
 import { Disposable } from '../../types'
@@ -72,10 +71,11 @@ export class WsDebuggerAdapter implements Adapter.Debugger {
     }
   }
 
-  dispose(): Awaitable<void> {
-    this.disable({
-      id: this.adapter.getConnection().generateIdentifier(),
-      params: {},
+  onPaused<Id extends number = number>(callback: (notification: Adapter.Debugger.Paused.Notification<Id>) => void): Disposable {
+    return this.adapter.onNotification((notification) => {
+      if (!Adapter.OptionalNotification.is(notification)) return
+      if (notification.method !== 'Debugger.paused') return
+      callback(notification as Adapter.Debugger.Paused.Notification<Id>)
     })
   }
 }

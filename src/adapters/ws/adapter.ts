@@ -14,20 +14,14 @@ export class WsAdapterImpl extends BaseAdapter implements WsAdapter {
   private readonly _runtimeAdapter = new WsRuntimeAdapter(this)
 
   constructor(
+    protected readonly connection: Connection,
     private readonly options: WsAdapter.ResolvedOptions,
-    private readonly connection: Connection,
     private readonly ws: WebSocket,
     private readonly keepAlive: WebSocket,
-  ) {
-    super()
-  }
+  ) { super(connection) }
 
   getResolvedOptions(): WsAdapter.ResolvedOptions {
     return this.options
-  }
-
-  getConnection(): Connection {
-    return this.connection
   }
 
   async getDebuggerAdapter(): Promise<Adapter.Debugger> {
@@ -178,7 +172,7 @@ export async function createWsAdapter(options: WsAdapter.Options | string = new 
         function handleOpen() {
           ws.off('open', handleOpen)
           ws.off('error', handleError)
-          resolve(new WsAdapterImpl(resolvedOptions, connection, ws, keepAlive))
+          resolve(new WsAdapterImpl(connection, resolvedOptions, ws, keepAlive))
         }
 
         function handleError(error: Error) {
@@ -193,7 +187,9 @@ export async function createWsAdapter(options: WsAdapter.Options | string = new 
 
         connection.push(
           Disposable.from(() => {
+            console.log('dispose', ws)
             ws.close()
+            console.log('keepAlive close', keepAlive)
             keepAlive.close()
           }),
         )

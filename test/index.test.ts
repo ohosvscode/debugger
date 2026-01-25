@@ -8,6 +8,8 @@ describe('connection', (it) => {
   let connection: Connection<WsAdapter>
   let debuggerAdapter: Adapter.Debugger
   let runtimeAdapter: Adapter.Runtime
+  let lastObjectId: string | undefined
+  let pausedPromise: Promise<void> | undefined
 
   it.sequential('should create a connection', async () => {
     connection = await createConnection({
@@ -30,6 +32,7 @@ describe('connection', (it) => {
         resolve()
       })
     }).then(async () => {
+      let pausedPromiseResolver: (() => void) | undefined
       const runtimeEnableResponse = await runtimeAdapter.enable({ params: { options: ['enableLaunchAccelerate'], maxScriptsCacheSize: 1.0e7 } })
       if (!Adapter.Response.is(runtimeEnableResponse)) throw new Error(`Failed to enable runtime: ${runtimeEnableResponse}`)
       console.log(`Runtime.enable`)
@@ -41,7 +44,13 @@ describe('connection', (it) => {
       console.dir(debuggerEnableResponse, { depth: null })
 
       const saveAllPossibleBreakpointsResponse = await debuggerAdapter.saveAllPossibleBreakpoints({
-        params: { locations: {} },
+        params: {
+          locations: {
+            'entry|entry|1.0.0|src/main/ets/pages/Index.ts': [
+              { lineNumber: 39, columnNumber: 8 },
+            ],
+          },
+        },
       })
       console.log(`Debugger.saveAllPossibleBreakpoints`)
       console.dir(saveAllPossibleBreakpointsResponse, { depth: null })
@@ -54,41 +63,37 @@ describe('connection', (it) => {
 
       return new Promise<void>((resolve) => {
         connection.push(
-          debuggerAdapter.onScriptParsed({
-            onScriptParsed(notification) {
-              console.log(`Debugger.scriptParsed: ${notification.params.url}`)
-            },
-            async onExceeded(notifications) {
-              await sleep(3000)
-              for (const notification of notifications) {
-                const setBreakpointsResponse = await debuggerAdapter.getPossibleAndSetBreakpointByUrl({
-                  params: {
-                    locations: [
-                      { url: notification.params.url, columnNumber: 0, lineNumber: 0 },
-                    ],
-                  },
-                })
-                console.log(`Debugger.getPossibleAndSetBreakpointByUrl`)
-                console.dir(setBreakpointsResponse, { depth: null })
-              }
-
-              await sleep(1000)
-
-              for (const notification of notifications) {
-                const removeBreakpointsResponse = await debuggerAdapter.removeBreakpointsByUrl({
-                  params: {
-                    url: notification.params.url,
-                  },
-                })
-                console.log(`Debugger.removeBreakpointsByUrl`)
-                console.dir(removeBreakpointsResponse, { depth: null })
-              }
-              resolve()
-            },
-          }, 2),
+          debuggerAdapter.onScriptParsed((notification) => {
+            console.log(`Debugger.scriptParsed: ${notification.params.url}`)
+            if ((notification.params as any).locations?.length) {
+              console.log('scriptParsed.locations', (notification.params as any).locations)
+            }
+            resolve()
+          }),
+          // 监听 paused，捕获 objectId 以便后续 getProperties
+          debuggerAdapter.onPaused((paused) => {
+            const scopes = (
+              paused.params as {
+                callFrames?: Array<{ scopeChain?: Array<{ object?: { objectId?: string } }> }>
+              } | undefined
+            )?.callFrames?.[0]?.scopeChain ?? []
+            const found = scopes.find(scope => scope?.object?.objectId)
+            if (found?.object?.objectId) lastObjectId = found.object.objectId
+            if (pausedPromiseResolver) {
+              pausedPromiseResolver()
+              pausedPromiseResolver = undefined
+            }
+          }),
         )
+        pausedPromise = new Promise<void>((res) => { pausedPromiseResolver = res })
       })
     }).then(async () => {
+      // 等待命中断点产生 paused（onPageShow 为生命周期自动触发，给足时间）
+      if (pausedPromise) {
+        await Promise.race([pausedPromise, sleep(30_000)])
+      }
+      if (!lastObjectId) throw new Error('等待 30s 仍未收到 Debugger.paused，可能生命周期未触发或行号不匹配')
+
       const runtimeDisableResponse = await runtimeAdapter.disable({ params: {} })
       console.log(`Runtime.disable`)
       console.dir(runtimeDisableResponse, { depth: null })
@@ -96,6 +101,22 @@ describe('connection', (it) => {
       const debuggerDisableResponse = await debuggerAdapter.disable({ params: {} })
       console.log(`Debugger.disable`)
       console.dir(debuggerDisableResponse, { depth: null })
+
+      // 进一步验证 Runtime.getProperties
+      if (!lastObjectId) {
+        console.log('未捕获到 paused scope 的 objectId，跳过 getProperties 校验')
+        return
+      }
+      const propsResp = await runtimeAdapter.getProperties({
+        params: { objectId: lastObjectId, ownProperties: true, accessorPropertiesOnly: false, generatePreview: true },
+      })
+      console.log('Runtime.getProperties')
+      console.dir(propsResp, { depth: null })
+      expect(Adapter.Response.is(propsResp) || Adapter.Error.is(propsResp)).toBe(true)
+
+      // 清理断点（使用已知脚本 URL）
+      await debuggerAdapter.removeBreakpointsByUrl({ params: { url: 'entry|entry|1.0.0|src/main/ets/pages/Index.ts' } })
+      await debuggerAdapter.removeBreakpointsByUrl({ params: { url: 'entry|entry|1.0.0|src/main/ets/entryability/EntryAbility.ts' } })
     })
-  }, 10000)
+  }, 20000)
 })

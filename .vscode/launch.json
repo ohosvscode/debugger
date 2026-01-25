@@ -1,0 +1,18 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Launch",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}/.vscode/extensions/test",
+        "--folder-uri=${workspaceFolder}/test/app"
+      ],
+      "preLaunchTask": {
+        "type": "npm",
+        "script": "watch"
+      }
+    }
+  ]
+}

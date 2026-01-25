@@ -70,7 +70,6 @@ export async function createConnection<TAdapter extends Adapter = Adapter>(optio
   await restartApp(resolvedOptions)
 
   const pid = await waitForPid(resolvedOptions)
-
   await bindPort(resolvedOptions.devtoolsPort, `ark:${pid}@${resolvedOptions.identifier}`)
 
   // 略微等待，确保 9229 已经稳定后再绑定 9230

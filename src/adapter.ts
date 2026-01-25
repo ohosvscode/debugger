@@ -120,9 +120,16 @@ export namespace Adapter {
   }
 
   export interface Location {
-    url: string
     lineNumber: number
     columnNumber: number
+  }
+
+  export interface UrlLocation extends Location {
+    url: string
+  }
+
+  export interface MultiLocation {
+    [url: string]: Location[]
   }
 
   export interface Debugger extends Partial<Disposable> {
@@ -133,12 +140,14 @@ export namespace Adapter {
     saveAllPossibleBreakpoints<Id extends number = number>(request: Adapter.Debugger.SaveAllPossibleBreakpoints.Request<Id>): Promise<Adapter.Debugger.SaveAllPossibleBreakpoints.Response<Id> | Adapter.Error<Id>>
     onScriptParsed<Id extends number = number>(callback: (notification: Adapter.Debugger.ScriptParsed.Notification<Id>) => void): Disposable
     onScriptParsed<Id extends number = number>(callbacks: Adapter.Debugger.ScriptParsed.Callback<Id>, disposeWhenCountExceeded: number): Disposable
+    onPaused<Id extends number = number>(callback: (notification: Adapter.Debugger.Paused.Notification<Id>) => void): Disposable
   }
 
   export interface Runtime {
     enable<Id extends number = number>(request: Adapter.Runtime.Enable.Request<Id>): Promise<Adapter.Runtime.Enable.Response<Id> | Adapter.Error<Id>>
     disable<Id extends number = number>(request: Adapter.Runtime.Disable.Request<Id>): Promise<Adapter.Runtime.Disable.Response<Id> | Adapter.Error<Id>>
     runIfWaitingForDebugger<Id extends number = number>(request: Adapter.Runtime.RunIfWaitingForDebugger.Request<Id>): Promise<Adapter.Runtime.RunIfWaitingForDebugger.Response<Id> | Adapter.Error<Id>>
+    getProperties<Id extends number = number>(request: Adapter.Runtime.GetProperties.Request<Id>): Promise<Adapter.Runtime.GetProperties.Response<Id> | Adapter.Error<Id>>
   }
 
   export namespace Runtime {
@@ -161,6 +170,32 @@ export namespace Adapter {
       export interface Request<Id extends number = number> extends Adapter.OptionalRequest<Id, Record<never, never>> {}
 
       export interface Response<Id extends number = number> extends Adapter.Response<Id, Record<never, never>> {}
+    }
+
+    export namespace GetProperties {
+      export interface Params {
+        objectId: string
+        ownProperties?: boolean
+        accessorPropertiesOnly?: boolean
+        generatePreview?: boolean
+      }
+
+      export interface PropertyDescriptor {
+        name: string
+        value?: {
+          description?: string
+          value?: unknown
+          unserializableValue?: unknown
+          type?: string
+        }
+      }
+
+      export interface Result {
+        result: PropertyDescriptor[]
+      }
+
+      export interface Request<Id extends number = number> extends Adapter.OptionalRequest<Id, Params> {}
+      export interface Response<Id extends number = number> extends Adapter.Response<Id, Result> {}
     }
   }
 
@@ -192,7 +227,7 @@ export namespace Adapter {
 
     export namespace SaveAllPossibleBreakpoints {
       export interface Params {
-        locations: Record<never, never>
+        locations: Adapter.MultiLocation
       }
 
       export interface Request<Id extends number = number> extends Adapter.OptionalRequest<Id, Params> {}
@@ -201,13 +236,13 @@ export namespace Adapter {
 
     export namespace GetPossibleAndSetBreakpointByUrl {
       export interface Params {
-        locations: Adapter.Location[]
+        locations: Adapter.UrlLocation[]
       }
 
       export interface Request<Id extends number = number> extends Adapter.OptionalRequest<Id, Params> {}
 
       export interface Result {
-        breakpoints: Adapter.Location[]
+        breakpoints: Adapter.UrlLocation[]
       }
 
       export interface Response<Id extends number = number> extends Adapter.Response<Id, Result> {}
@@ -232,6 +267,22 @@ export namespace Adapter {
       export interface Callback<Id extends number = number> {
         onScriptParsed?(notification: Adapter.Debugger.ScriptParsed.Notification<Id>): void
         onExceeded?(notifications: Adapter.Debugger.ScriptParsed.Notification<Id>[]): void
+      }
+
+      export interface Notification<Id extends number = number> extends Adapter.OptionalNotification<Id, Params> {}
+    }
+
+    export namespace Paused {
+      export interface CallFrame {
+        functionName: string
+        scriptId: string
+        url: string
+        lineNumber: number
+        columnNumber: number
+      }
+
+      export interface Params {
+        callFrames?: CallFrame[]
       }
 
       export interface Notification<Id extends number = number> extends Adapter.OptionalNotification<Id, Params> {}
