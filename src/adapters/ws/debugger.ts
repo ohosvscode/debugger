@@ -78,4 +78,11 @@ export class WsDebuggerAdapter implements Adapter.Debugger {
       callback(notification as Adapter.Debugger.Paused.Notification<Id>)
     })
   }
+
+  resume<Id extends number = number>(request: Adapter.Debugger.Resume.Request<Id>): Promise<Adapter.Debugger.Resume.Response<Id> | Adapter.Error<Id, unknown>> {
+    return this.adapter.sendRequest({
+      ...request,
+      method: 'Debugger.resume',
+    })
+  }
 }

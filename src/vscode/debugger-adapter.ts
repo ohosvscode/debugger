@@ -1,5 +1,6 @@
 import type { DebugProtocol } from '@vscode/debugprotocol'
 import { InitializedEvent, TerminatedEvent } from '@vscode/debugadapter'
+import { SetBreakpoints } from './breakpoints'
 import { AbstractDebugSession } from './debug-session'
 import * as DisconnectRequest from './disconnect-request'
 import { CDPConnection, Arguments as LaunchRequestArguments } from './launch-request'
@@ -16,15 +17,38 @@ export class VscodeDebuggerAdapter extends AbstractDebugSession {
     if (identifier instanceof Error) return this.sendErrorResponse(response, 400, identifier.message)
     const cdp = await CDPConnection.create(resolvedArgs, identifier, this)
     this.setCDPConnection(cdp)
+    this.setProjectRoot(resolvedArgs.projectRoot)
+    cdp.startListenPausedEvent()
     await cdp.enable()
     await cdp.setInitialBreakpoints()
     await cdp.runIfWaitingForDebugger()
+    this.setIsLaunched(true)
     this.sendResponse(response)
   }
 
-  protected setBreakPointsRequest(response: DebugProtocol.SetBreakpointsResponse, args: DebugProtocol.SetBreakpointsArguments): void {
+  protected async setBreakPointsRequest(response: DebugProtocol.SetBreakpointsResponse, args: DebugProtocol.SetBreakpointsArguments) {
     if (!args.source?.path) return this.sendErrorResponse(response, 400, 'Source path is required.')
     this.getBreakpointStore().set(args.source.path, args.breakpoints ?? [])
+    const debuggerAdapter = await this.getConnection()?.getDebuggerAdapter()
+    if (!debuggerAdapter) return this.sendErrorResponse(response, 400, 'Debugger adapter is not found.')
+    if (this.isLaunched()) {
+      const locations = SetBreakpoints.buildUrlLocation(this)
+      if (locations instanceof Error) return this.sendErrorResponse(response, 400, locations.message)
+      await debuggerAdapter.getPossibleAndSetBreakpointByUrl({ params: { locations } })
+    }
+    this.sendResponse(response)
+  }
+
+  protected threadsRequest(response: DebugProtocol.ThreadsResponse): void {
+    response.body = {
+      threads: [
+        { id: 1, name: 'Main Thread' },
+      ],
+    }
+    this.sendResponse(response)
+  }
+
+  protected scopesRequest(response: DebugProtocol.ScopesResponse): void {
     this.sendResponse(response)
   }
 
@@ -40,6 +64,13 @@ export class VscodeDebuggerAdapter extends AbstractDebugSession {
     finally {
       await this.disposeConnection()
     }
+  }
+
+  protected async continueRequest(response: DebugProtocol.ContinueResponse) {
+    const debuggerAdapter = await this.getConnection()?.getDebuggerAdapter()
+    if (!debuggerAdapter) return this.sendErrorResponse(response, 400, 'Debugger adapter is not found.')
+    await debuggerAdapter.resume({ params: {} })
+    this.sendResponse(response)
   }
 
   protected variablesRequest(response: DebugProtocol.VariablesResponse, args: DebugProtocol.VariablesArguments): void {

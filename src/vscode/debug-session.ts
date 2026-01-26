@@ -10,6 +10,16 @@ export abstract class AbstractDebugSession extends DebugSession {
   private readonly _store = new VariableStore()
   private readonly _breakpointStore = new BreakpointStore()
   private _cdpConnection: CDPConnection | undefined
+  private _isLaunched = false
+  private _projectRoot: string
+
+  getProjectRoot(): string {
+    return this._projectRoot
+  }
+
+  setProjectRoot(projectRoot: string): void {
+    this._projectRoot = projectRoot
+  }
 
   getConnection(): Connection | undefined {
     return this._cdpConnection?.getConnection()
@@ -23,11 +33,20 @@ export abstract class AbstractDebugSession extends DebugSession {
     this._cdpConnection = cdpConnection
   }
 
+  setIsLaunched(isLaunched: boolean): void {
+    this._isLaunched = isLaunched
+  }
+
+  isLaunched(): boolean {
+    return this._isLaunched
+  }
+
   async disposeConnection(): Promise<void> {
     await this.getConnection()?.dispose()
     this._store.dispose()
     this._breakpointStore.dispose()
     this._cdpConnection = undefined
+    this._isLaunched = false
   }
 
   getLogger(): VscodeDebuggerAdapterLogger {

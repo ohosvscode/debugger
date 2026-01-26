@@ -4,13 +4,16 @@ import type { VscodeDebuggerAdapter } from './debugger-adapter'
 import fs from 'node:fs'
 import path from 'node:path'
 import { SourceMapConsumer } from '@jridgewell/source-map'
+import { StoppedEvent } from '@vscode/debugadapter'
 import JSON5 from 'json5'
 import { Adapter, createConnection } from '../index'
 import { createWsAdapter } from '../ws'
+import { SetBreakpoints } from './breakpoints'
 
 export interface CDPConnection {
   getConnection(): Connection
   enable(): Promise<void>
+  startListenPausedEvent(): Promise<void>
   setInitialBreakpoints(): Promise<void>
   runIfWaitingForDebugger(): Promise<void>
   createSourceMapReader(): CDPConnection.SourceMap[] | Error
@@ -30,55 +33,20 @@ export namespace CDPConnection {
       private readonly vscodeDebuggerAdapter: VscodeDebuggerAdapter,
     ) {}
 
+    private _isLaunched = false
+
+    isLaunched(): boolean {
+      return this._isLaunched
+    }
+
     getConnection(): Connection {
       return this.connection
     }
 
     async setInitialBreakpoints() {
       const debuggerAdapter = await this.connection.getDebuggerAdapter()
-      const sourceMaps = this.createSourceMapReader()
-      if (sourceMaps instanceof Error) return this.vscodeDebuggerAdapter.getLogger().data('Failed to create source map reader:', sourceMaps)
-      const locations: Adapter.MultiLocation = {}
-
-      for (const [filePath, breakpoints] of this.vscodeDebuggerAdapter.getBreakpointStore().entries()) {
-        const relativeFilePath = path.relative(this.resolvedArgs.projectRoot, filePath)
-        const sourceMap = sourceMaps.find(sourceMap => sourceMap.getSources().includes(relativeFilePath))
-        if (!sourceMap) continue
-        this.vscodeDebuggerAdapter.getLogger().data('Source map found:', {
-          cdpSource: sourceMap.getCDPSource(),
-          sources: sourceMap.getSources(),
-          relativeFilePath,
-          filePath,
-        })
-
-        sourceMap.getSourceMapReader().eachMapping((mapping) => {
-          this.vscodeDebuggerAdapter.getLogger().data('Mapping:', mapping)
-        })
-
-        for (const breakpoint of breakpoints) {
-          const transformedLocation = sourceMap.getSourceMapReader().generatedPositionFor({
-            line: breakpoint.line,
-            column: breakpoint.column ?? 0,
-            source: relativeFilePath,
-            bias: -1,
-          })
-
-          if (!locations[sourceMap.getCDPSource()]) {
-            locations[sourceMap.getCDPSource()] = [
-              {
-                lineNumber: transformedLocation.line ?? 0,
-                columnNumber: transformedLocation.column ?? 0,
-              },
-            ]
-          }
-          else {
-            locations[sourceMap.getCDPSource()].push({
-              lineNumber: transformedLocation.line ?? 0,
-              columnNumber: transformedLocation.column ?? 0,
-            })
-          }
-        }
-      }
+      const locations = SetBreakpoints.buildMultiLocation(this.vscodeDebuggerAdapter)
+      if (locations instanceof Error) return this.vscodeDebuggerAdapter.getLogger().data('Failed to build multi location:', locations)
 
       this.vscodeDebuggerAdapter.getLogger().data('Setting initial breakpoints...', locations)
       const result = await debuggerAdapter.saveAllPossibleBreakpoints({ params: { locations } })
@@ -134,6 +102,18 @@ export namespace CDPConnection {
       await this.enableDebuggerNamespace(this.vscodeDebuggerAdapter)
     }
 
+    async startListenPausedEvent() {
+      const debuggerAdapter = await this.connection.getDebuggerAdapter()
+      if (!debuggerAdapter) return this.vscodeDebuggerAdapter.getLogger().getConsola().info('The debugger adapter is not found.')
+
+      this.connection.push(
+        debuggerAdapter.onPaused((paused) => {
+          this.vscodeDebuggerAdapter.getLogger().data('Paused:', paused)
+          this.vscodeDebuggerAdapter.sendEvent(new StoppedEvent(paused.params.reason, 1))
+        }),
+      )
+    }
+
     private async enableRuntimeNamespace(vscodeDebuggerAdapter: VscodeDebuggerAdapter) {
       const runtimeAdapter = await this.connection.getRuntimeAdapter()
       if (!runtimeAdapter) return vscodeDebuggerAdapter.getLogger().getConsola().info('The runtime adapter is not found.')
@@ -164,8 +144,12 @@ export namespace CDPConnection {
       identifier,
     })
 
-    await connection.getDebuggerAdapter().then((debuggerAdapter) => {
-      debuggerAdapter.onScriptParsed(scriptParsed => vscodeDebuggerAdapter.getLogger().data('Script parsed:', scriptParsed))
+    connection.onNotification((notification) => {
+      vscodeDebuggerAdapter.getLogger().data('Notification:', notification)
+    })
+
+    connection.onRequest((request) => {
+      vscodeDebuggerAdapter.getLogger().data('Request:', request)
     })
 
     return new CDPConnectionImpl(resolvedArgs, connection, vscodeDebuggerAdapter)

@@ -124,6 +124,10 @@ export namespace Adapter {
     columnNumber: number
   }
 
+  export interface ScriptIdLocation extends Location {
+    scriptId: string
+  }
+
   export interface UrlLocation extends Location {
     url: string
   }
@@ -141,6 +145,7 @@ export namespace Adapter {
     onScriptParsed<Id extends number = number>(callback: (notification: Adapter.Debugger.ScriptParsed.Notification<Id>) => void): Disposable
     onScriptParsed<Id extends number = number>(callbacks: Adapter.Debugger.ScriptParsed.Callback<Id>, disposeWhenCountExceeded: number): Disposable
     onPaused<Id extends number = number>(callback: (notification: Adapter.Debugger.Paused.Notification<Id>) => void): Disposable
+    resume<Id extends number = number>(request: Adapter.Debugger.Resume.Request<Id>): Promise<Adapter.Debugger.Resume.Response<Id> | Adapter.Error<Id>>
   }
 
   export interface Runtime {
@@ -273,19 +278,42 @@ export namespace Adapter {
     }
 
     export namespace Paused {
+      export interface Object {
+        type: 'object'
+        className: string
+        description: string
+        objectId: string
+        unserializableValue?: string
+      }
+
+      export interface ScopeChain {
+        type: 'local' | 'closure' | 'module' | 'global'
+        object: Object
+        startLocation?: Adapter.ScriptIdLocation
+        endLocation?: Adapter.ScriptIdLocation
+      }
+
       export interface CallFrame {
+        callFrameId: string
         functionName: string
-        scriptId: string
+        location: Adapter.ScriptIdLocation
         url: string
-        lineNumber: number
-        columnNumber: number
+        scopeChain: ScopeChain[]
+        this: Object
       }
 
       export interface Params {
-        callFrames?: CallFrame[]
+        callFrames: CallFrame[]
+        reason: string
+        hitBreakpoints: string[]
       }
 
       export interface Notification<Id extends number = number> extends Adapter.OptionalNotification<Id, Params> {}
+    }
+
+    export namespace Resume {
+      export interface Request<Id extends number = number> extends Adapter.OptionalRequest<Id, Record<never, never>> {}
+      export interface Response<Id extends number = number> extends Adapter.Response<Id, Record<never, never>> {}
     }
   }
 }

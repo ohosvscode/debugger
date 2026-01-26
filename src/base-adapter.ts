@@ -49,6 +49,9 @@ export abstract class BaseAdapter {
       else if (Adapter.Notification.is(data)) {
         return null
       }
+      else if (Adapter.OptionalNotification.is(data)) {
+        return null
+      }
       else {
         return new JsonException(`Unknown JSON-RPC request.`, JsonException.Type.UNKNOWN_JSONRPC_RESPONSE, message)
       }
