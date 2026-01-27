@@ -4,6 +4,8 @@ import type { Awaitable, Disposable } from '../../types'
 export class BreakpointStore implements Disposable {
   private readonly _map = new Map<string, Set<DebugProtocol.SourceBreakpoint>>()
 
+  constructor() {}
+
   set(filePath: string, breakpoints: Set<DebugProtocol.SourceBreakpoint> | DebugProtocol.SourceBreakpoint[]) {
     this._map.set(filePath, breakpoints instanceof Set ? breakpoints : new Set(breakpoints))
   }

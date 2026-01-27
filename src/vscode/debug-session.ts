@@ -1,4 +1,5 @@
 import type { Connection } from '../connection'
+import type { PausedState } from './data/paused-state'
 import type { CDPConnection } from './launch-request'
 import { DebugSession } from '@vscode/debugadapter'
 import { BreakpointStore } from './data/breakpoint-store'
@@ -12,6 +13,7 @@ export abstract class AbstractDebugSession extends DebugSession {
   private _cdpConnection: CDPConnection | undefined
   private _isLaunched = false
   private _projectRoot: string
+  private _currentPausedState: PausedState | undefined
 
   getProjectRoot(): string {
     return this._projectRoot
@@ -50,7 +52,7 @@ export abstract class AbstractDebugSession extends DebugSession {
   }
 
   getLogger(): VscodeDebuggerAdapterLogger {
-    return this._logger
+    return this._logger as VscodeDebuggerAdapterLogger
   }
 
   getVariableStore(): VariableStore {
@@ -59,5 +61,13 @@ export abstract class AbstractDebugSession extends DebugSession {
 
   getBreakpointStore(): BreakpointStore {
     return this._breakpointStore
+  }
+
+  getCurrentPausedState(): PausedState | undefined {
+    return this._currentPausedState
+  }
+
+  setCurrentPausedState(pausedState: PausedState): void {
+    this._currentPausedState = pausedState
   }
 }

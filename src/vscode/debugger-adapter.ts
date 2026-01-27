@@ -1,6 +1,8 @@
 import type { DebugProtocol } from '@vscode/debugprotocol'
 import { InitializedEvent, TerminatedEvent } from '@vscode/debugadapter'
 import { SetBreakpoints } from './breakpoints'
+import { PausedState } from './data/paused-state'
+import { Variable } from './data/variable'
 import { AbstractDebugSession } from './debug-session'
 import * as DisconnectRequest from './disconnect-request'
 import { CDPConnection, Arguments as LaunchRequestArguments } from './launch-request'
@@ -29,13 +31,25 @@ export class VscodeDebuggerAdapter extends AbstractDebugSession {
   protected async setBreakPointsRequest(response: DebugProtocol.SetBreakpointsResponse, args: DebugProtocol.SetBreakpointsArguments) {
     if (!args.source?.path) return this.sendErrorResponse(response, 400, 'Source path is required.')
     this.getBreakpointStore().set(args.source.path, args.breakpoints ?? [])
+    if (!this.isLaunched()) return this.sendResponse(response)
+    const locations = SetBreakpoints.buildUrlLocation(this)
+    if (locations instanceof Error) return this.sendErrorResponse(response, 400, locations.message)
     const debuggerAdapter = await this.getConnection()?.getDebuggerAdapter()
-    if (!debuggerAdapter) return this.sendErrorResponse(response, 400, 'Debugger adapter is not found.')
-    if (this.isLaunched()) {
-      const locations = SetBreakpoints.buildUrlLocation(this)
-      if (locations instanceof Error) return this.sendErrorResponse(response, 400, locations.message)
-      await debuggerAdapter.getPossibleAndSetBreakpointByUrl({ params: { locations } })
+    if (locations.length === 0) {
+      const cdpSource = SetBreakpoints.getCDPSource(this, args.source.path, locations.getSourceMaps())
+      if (cdpSource instanceof Error) return this.sendErrorResponse(response, 400, cdpSource.message)
+      await debuggerAdapter?.removeBreakpointsByUrl({ params: { url: cdpSource } })
     }
+    else {
+      await debuggerAdapter?.getPossibleAndSetBreakpointByUrl({ params: { locations } })
+    }
+    this.sendResponse(response)
+  }
+
+  protected stackTraceRequest(response: DebugProtocol.StackTraceResponse): void {
+    const pausedState = this.getCurrentPausedState()
+    if (!pausedState) return this.sendErrorResponse(response, 400, 'No paused state found.')
+    response.body = { stackFrames: PausedState.transformCallFrames(pausedState) }
     this.sendResponse(response)
   }
 
@@ -48,7 +62,12 @@ export class VscodeDebuggerAdapter extends AbstractDebugSession {
     this.sendResponse(response)
   }
 
-  protected scopesRequest(response: DebugProtocol.ScopesResponse): void {
+  protected async scopesRequest(response: DebugProtocol.ScopesResponse): Promise<void> {
+    const pausedState = this.getCurrentPausedState()
+    if (!pausedState) return this.sendErrorResponse(response, 400, 'No paused state found.')
+    response.body = {
+      scopes: await PausedState.transformScopes(pausedState),
+    }
     this.sendResponse(response)
   }
 
@@ -73,17 +92,26 @@ export class VscodeDebuggerAdapter extends AbstractDebugSession {
     this.sendResponse(response)
   }
 
-  protected variablesRequest(response: DebugProtocol.VariablesResponse, args: DebugProtocol.VariablesArguments): void {
-    const value = this.getVariableStore().get(args.variablesReference)
-    if (!value) return this.sendErrorResponse(response, 400, 'Unknown variablesReference')
-    response.body = {
-      variables: Object.entries(value).map(
-        ([name, v]) => ({
+  protected async variablesRequest(response: DebugProtocol.VariablesResponse, args: DebugProtocol.VariablesArguments): Promise<void> {
+    const variable = this.getVariableStore().get(args.variablesReference)
+    if (!variable) return this.sendResponse(response)
+    const variables: DebugProtocol.Variable[] = []
+
+    if (Variable.Remote.is(variable)) {
+      variables.push(...await variable.getValue(args.variablesReference))
+    }
+    else if (Variable.Local.is(variable)) {
+      for (const [name, v] of Object.entries(variable.getValue())) {
+        variables.push({
           name,
           value: typeof v === 'object' ? JSON.stringify(v) : String(v),
-          variablesReference: typeof v === 'object' && v !== null ? this.getVariableStore().add(v) : 0,
-        } satisfies DebugProtocol.Variable),
-      ),
+          variablesReference: typeof v === 'object' && v !== null ? this.getVariableStore().add(Variable.fromLocal(v)) : 0,
+        })
+      }
+    }
+
+    response.body = {
+      variables,
     }
     this.sendResponse(response)
   }

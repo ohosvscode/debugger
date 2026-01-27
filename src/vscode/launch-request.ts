@@ -9,6 +9,7 @@ import JSON5 from 'json5'
 import { Adapter, createConnection } from '../index'
 import { createWsAdapter } from '../ws'
 import { SetBreakpoints } from './breakpoints'
+import { PausedState } from './data/paused-state'
 
 export interface CDPConnection {
   getConnection(): Connection
@@ -107,8 +108,10 @@ export namespace CDPConnection {
       if (!debuggerAdapter) return this.vscodeDebuggerAdapter.getLogger().getConsola().info('The debugger adapter is not found.')
 
       this.connection.push(
-        debuggerAdapter.onPaused((paused) => {
+        debuggerAdapter.onPaused(async (paused) => {
           this.vscodeDebuggerAdapter.getLogger().data('Paused:', paused)
+          const pausedState = new PausedState(paused.params, this.vscodeDebuggerAdapter)
+          this.vscodeDebuggerAdapter.setCurrentPausedState(pausedState)
           this.vscodeDebuggerAdapter.sendEvent(new StoppedEvent(paused.params.reason, 1))
         }),
       )

@@ -1,4 +1,5 @@
 import type { Adapter } from '../adapter'
+import type { LaunchRequest } from '../vscode'
 import type { VscodeDebuggerAdapter } from './debugger-adapter'
 import path from 'node:path'
 
@@ -41,10 +42,10 @@ export namespace SetBreakpoints {
     return locations
   }
 
-  export function buildUrlLocation(vscodeDebuggerAdapter: VscodeDebuggerAdapter): Adapter.UrlLocation[] | Error {
+  export function buildUrlLocation(vscodeDebuggerAdapter: VscodeDebuggerAdapter): Array<Adapter.UrlLocation> & { getSourceMaps(): LaunchRequest.CDPConnection.SourceMap[] } | Error {
     const sourceMaps = vscodeDebuggerAdapter.readSourceMap()
     if (sourceMaps instanceof Error) return sourceMaps
-    const locations: Adapter.UrlLocation[] = []
+    const locations: Array<Adapter.UrlLocation> & { getSourceMaps(): LaunchRequest.CDPConnection.SourceMap[] } = [] as any
 
     for (const [filePath, breakpoints] of vscodeDebuggerAdapter.getBreakpointStore().entries()) {
       const relativeFilePath = path.relative(vscodeDebuggerAdapter.getProjectRoot(), filePath)
@@ -67,6 +68,15 @@ export namespace SetBreakpoints {
       }
     }
 
+    locations.getSourceMaps = () => sourceMaps
+
     return locations
+  }
+
+  export function getCDPSource(vscodeDebuggerAdapter: VscodeDebuggerAdapter, filePath: string, sourceMaps: LaunchRequest.CDPConnection.SourceMap[]): string | Error {
+    const relativeFilePath = path.relative(vscodeDebuggerAdapter.getProjectRoot(), filePath)
+    const sourceMap = sourceMaps.find(sourceMap => sourceMap.getSources().includes(relativeFilePath))
+    if (!sourceMap) return new Error('Source map not found')
+    return sourceMap.getCDPSource()
   }
 }

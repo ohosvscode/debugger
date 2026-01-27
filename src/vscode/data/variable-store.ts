@@ -1,10 +1,11 @@
 import type { Awaitable, Disposable } from '../../types'
+import type { Variable } from './variable'
 
 export class VariableStore implements Disposable {
   private next = 1
-  private map = new Map<number, unknown>()
+  private map = new Map<number, Variable.Local | Variable.Remote>()
 
-  add<T>(value: T) {
+  add<T extends Variable.Variable>(value: T): number {
     const id = this.next++
     this.map.set(id, value)
     return id

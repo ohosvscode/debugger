@@ -3,6 +3,7 @@ import type { AbstractDebugSession } from './debug-session'
 import { OutputEvent } from '@vscode/debugadapter'
 import { createConsola } from 'consola'
 import { blue, dim, gray, green, red, yellow } from 'kleur/colors'
+import { Variable } from './data/variable'
 
 export interface VscodeDebuggerAdapterLogger {
   getConsola(): ConsolaInstance
@@ -117,10 +118,10 @@ export namespace VscodeDebuggerAdapterLogger {
       return this.consola
     }
 
-    data<T>(message: string, data: T, logFn: ConsolaInstance['log'] = this.consola.log) {
-      const ref = this.session.getVariableStore().add({ payload: data })
+    data<T extends Variable.Value = Variable.Value>(message: string, data: T, logFn: ConsolaInstance['log'] = this.consola.log) {
+      const ref = this.session.getVariableStore().add(Variable.fromLocal({ payload: data }))
       const event = new OutputEvent('', 'console')
-      ;(event as any).body.variablesReference = ref
+      ;(event as OutputEvent & { body: { variablesReference: number } }).body.variablesReference = ref
       logFn(message)
       this.session.sendEvent(event)
     }

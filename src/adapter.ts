@@ -187,12 +187,9 @@ export namespace Adapter {
 
       export interface PropertyDescriptor {
         name: string
-        value?: {
-          description?: string
-          value?: unknown
-          unserializableValue?: unknown
-          type?: string
-        }
+        value?: Debugger.Paused.Object
+        get?: Debugger.Paused.Object
+        set?: Debugger.Paused.Object
       }
 
       export interface Result {
@@ -286,11 +283,38 @@ export namespace Adapter {
         unserializableValue?: string
       }
 
+      export namespace Object {
+        export function is(value: unknown): value is Paused.Object {
+          return typeof value === 'object'
+            && value !== null
+            && 'type' in value
+            && value.type === 'object'
+            && 'className' in value
+            && typeof value.className === 'string'
+            && 'description' in value
+            && typeof value.description === 'string'
+            && 'objectId' in value
+            && typeof value.objectId === 'string'
+        }
+      }
+
       export interface ScopeChain {
         type: 'local' | 'closure' | 'module' | 'global'
         object: Object
         startLocation?: Adapter.ScriptIdLocation
         endLocation?: Adapter.ScriptIdLocation
+      }
+
+      export namespace ScopeChain {
+        export function is(value: unknown): value is Paused.ScopeChain {
+          return typeof value === 'object'
+            && value !== null
+            && 'type' in value
+            && typeof value.type === 'string'
+            && ['local', 'closure', 'module', 'global'].includes(value.type)
+            && 'object' in value
+            && Paused.Object.is(value.object)
+        }
       }
 
       export interface CallFrame {

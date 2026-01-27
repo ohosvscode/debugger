@@ -11,13 +11,29 @@
     "onDebug"
   ],
   "contributes": {
+    "menus": {
+      "editor/title/run": [
+        {
+          "command": "arkts-debugger.debug",
+          "when": "resourceLangId == ets",
+          "group": "navigation@1"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "arkts-debugger.debug",
+        "title": "ArkTS Debugger (Test Inline)",
+        "category": "Debug",
+        "icon": "$(play)"
+      }
+    ],
     "debuggers": [
       {
         "type": "arkts-debugger",
         "label": "ArkTS Debugger (Test Inline)",
         "languages": [
-          "javascript",
-          "typescript"
+          "ets"
         ],
         "configurationAttributes": {
           "launch": {
