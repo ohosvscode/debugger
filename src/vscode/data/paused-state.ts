@@ -41,7 +41,7 @@ export class PausedState extends IdentifierGenerator {
 
       return {
         id: !Number.isNaN(Number(callFrame.callFrameId)) ? Number(callFrame.callFrameId) : state.generateIdentifier(),
-        name: callFrame.functionName ?? 'unknown',
+        name: callFrame.functionName ?? '<anonymous>',
         line: sourcePosition.line,
         column: sourcePosition.column,
         source: {
@@ -96,11 +96,13 @@ export class PausedState extends IdentifierGenerator {
           variables.push({
             name: property.name ?? '<anonymous>',
             value: property.value?.unserializableValue ?? property.value?.description ?? '<anonymous>',
-            variablesReference: property.value?.objectId
-              ? await this.getVariablesReferenceByObjectId(state, property.value.objectId)
-              : (property.get || property.set)
-                  ? await this.getVariablesByGetterOrSetter(state, property)
-                  : 0,
+            variablesReference: property.value?.type === 'number'
+              ? 0
+              : property.value?.objectId
+                ? await this.getVariablesReferenceByObjectId(state, property.value.objectId)
+                : (property.get || property.set)
+                    ? await this.getVariablesByGetterOrSetter(state, property)
+                    : 0,
           })
         }
 
@@ -114,12 +116,25 @@ export class PausedState extends IdentifierGenerator {
       state.getScopeChainsByCallFrame().map(
         async (scopeChain) => {
           return {
-            name: scopeChain.type,
-            variablesReference: await this.getVariablesReferenceByObjectId(state, scopeChain.object.objectId),
+            name: scopeChain.type as string,
+            variablesReference:
+            scopeChain.object.objectId
+              ? await this.getVariablesReferenceByObjectId(state, scopeChain.object.objectId)
+              : 0,
             expensive: false,
           } satisfies DebugProtocol.Scope
         },
       ),
-    )
+    ).then(async (scopes) => {
+      return scopes.concat([
+        {
+          name: 'this',
+          expensive: false,
+          variablesReference: state.getCallFrames()?.[0].this.objectId
+            ? await this.getVariablesReferenceByObjectId(state, state.getCallFrames()?.[0].this.objectId)
+            : 0,
+        },
+      ])
+    })
   }
 }

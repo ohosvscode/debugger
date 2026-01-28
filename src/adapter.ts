@@ -276,7 +276,7 @@ export namespace Adapter {
 
     export namespace Paused {
       export interface Object {
-        type: 'object'
+        type: 'object' | 'number'
         className: string
         description: string
         objectId: string
