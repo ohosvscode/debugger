@@ -40,12 +40,16 @@
   "main": "dist/index.cjs",
   "module": "dist/index.mjs",
   "types": "dist/index.d.cts",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsdown --format esm,cjs src/index.ts src/ws.ts src/vscode.ts src/bin.ts",
     "watch": "tsdown --format esm,cjs --watch src/index.ts src/ws.ts src/vscode.ts src/bin.ts",
     "test": "vitest --coverage --ui --globals"
   },
   "dependencies": {
+    "@changesets/cli": "^2.29.8",
     "@jridgewell/source-map": "^0.3.11",
     "@types/ws": "^8.18.1",
     "@vscode/debugadapter": "^1.68.0",
