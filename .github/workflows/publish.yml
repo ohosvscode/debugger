@@ -86,6 +86,21 @@ jobs:
           # 确保 pnpm 使用 npm 的配置
           pnpm config set registry https://registry.npmjs.org/ || true
 
+      - name: Debug npm configuration before publish
+        run: |
+          echo "=== Debugging npm configuration ==="
+          echo "NPM_CONFIG_USERCONFIG: ${NPM_CONFIG_USERCONFIG:-not set}"
+          echo "HOME: $HOME"
+          echo "Current .npmrc locations:"
+          ls -la ~/.npmrc 2>/dev/null || echo "~/.npmrc not found"
+          if [ -n "$NPM_CONFIG_USERCONFIG" ]; then
+            ls -la "$NPM_CONFIG_USERCONFIG" 2>/dev/null || echo "$NPM_CONFIG_USERCONFIG not found"
+          fi
+          echo "npm version: $(npm --version)"
+          echo "Checking npm config:"
+          npm config list || true
+          echo "=== End debugging ==="
+
       - name: Create Release Pull Request or Publish to npm
         id: changesets
         uses: changesets/action@v1
