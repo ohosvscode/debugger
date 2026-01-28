@@ -25,6 +25,7 @@ jobs:
         with:
           node-version: 20.x
           registry-url: 'https://registry.npmjs.org'
+          # OIDC 认证会自动处理，不需要 NODE_AUTH_TOKEN
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -35,15 +36,35 @@ jobs:
       - name: Build
         run: pnpm build
 
-      - name: Configure npm authentication for pnpm (OIDC)
+      - name: Configure npm for OIDC and pnpm
         run: |
-          # setup-node 已经创建了 ~/.npmrc，pnpm 需要能够读取它
-          # 确保 @arkts scope 使用正确的 registry
-          if [ -f ~/.npmrc ]; then
-            echo "@arkts:registry=https://registry.npmjs.org/" >> ~/.npmrc
+          # 注意：npm whoami 在 OIDC 下可能返回 401，这是正常的
+          # OIDC 认证只在发布时生效，不在认证检查时生效
+          
+          # 确保 .npmrc 在正确的位置供 pnpm 使用
+          NPMRC_USER="$HOME/.npmrc"
+          NPMRC_CONFIG="${NPM_CONFIG_USERCONFIG:-}"
+          
+          # 如果 setup-node 在 NPM_CONFIG_USERCONFIG 位置创建了 .npmrc，复制到 ~/.npmrc
+          if [ -n "$NPMRC_CONFIG" ] && [ -f "$NPMRC_CONFIG" ] && [ "$NPMRC_CONFIG" != "$NPMRC_USER" ]; then
+            echo "Copying .npmrc from $NPMRC_CONFIG to $NPMRC_USER"
+            cp "$NPMRC_CONFIG" "$NPMRC_USER"
           fi
-          echo "Verifying npm authentication..."
-          npm whoami --registry=https://registry.npmjs.org/ || echo "Warning: npm whoami failed"
+          
+          # 确保 @arkts scope 配置正确
+          if [ -f "$NPMRC_USER" ]; then
+            if ! grep -q "@arkts:registry" "$NPMRC_USER"; then
+              echo "@arkts:registry=https://registry.npmjs.org/" >> "$NPMRC_USER"
+            fi
+            chmod 600 "$NPMRC_USER"
+            echo ".npmrc configured at $NPMRC_USER"
+          else
+            echo "Warning: ~/.npmrc not found, but setup-node should have created it for OIDC"
+          fi
+          
+          # 检查 npm 版本（需要 >= 11.5.1 支持 Trusted Publishing）
+          echo "npm version: $(npm --version)"
+          echo "Node version: $(node --version)"
 
       - name: Create Release Pull Request or Publish to npm
         id: changesets
