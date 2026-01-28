@@ -60,6 +60,9 @@ importers:
       eslint:
         specifier: ^9.39.2
         version: 9.39.2
+      pnpm:
+        specifier: ^10.28.2
+        version: 10.28.2
       tsdown:
         specifier: ^0.20.0-beta.4
         version: 0.20.0-beta.4(synckit@0.11.12)(typescript@5.9.3)
@@ -2013,6 +2016,11 @@ packages:
 
   pnpm-workspace-yaml@1.5.0:
     resolution: {integrity: sha512-PxdyJuFvq5B0qm3s9PaH/xOtSxrcvpBRr+BblhucpWjs8c79d4b7/cXhyY4AyHOHCnqklCYZTjfl0bT/mFVTRw==, tarball: https://registry.npmjs.org/pnpm-workspace-yaml/-/pnpm-workspace-yaml-1.5.0.tgz}
+
+  pnpm@10.28.2:
+    resolution: {integrity: sha512-QYcvA3rSL3NI47Heu69+hnz9RI8nJtnPdMCPGVB8MdLI56EVJbmD/rwt9kC1Q43uYCPrsfhO1DzC1lTSvDJiZA==, tarball: https://registry.npmjs.org/pnpm/-/pnpm-10.28.2.tgz}
+    engines: {node: '>=18.12'}
+    hasBin: true
 
   postcss-selector-parser@7.1.1:
     resolution: {integrity: sha512-orRsuYpJVw8LdAwqqLykBj9ecS5/cRHlI5+nvTo8LcCKmzDmqVORXtOIYEEQuL9D4BxtA1lm5isAqzQZCoQ6Eg==, tarball: https://registry.npmjs.org/postcss-selector-parser/-/postcss-selector-parser-7.1.1.tgz}
@@ -4596,6 +4604,8 @@ snapshots:
   pnpm-workspace-yaml@1.5.0:
     dependencies:
       yaml: 2.8.2
+
+  pnpm@10.28.2: {}
 
   postcss-selector-parser@7.1.1:
     dependencies:
