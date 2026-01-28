@@ -41,14 +41,31 @@ jobs:
           # 注意：npm whoami 在 OIDC 下可能返回 401，这是正常的
           # OIDC 认证只在发布时生效，不在认证检查时生效
           
-          # 确保 .npmrc 在正确的位置供 pnpm 使用
+          # setup-node@v4 使用 OIDC 时，会在 NPM_CONFIG_USERCONFIG 指定的位置创建 .npmrc
+          # 我们需要确保这个配置能被 pnpm 使用
           NPMRC_USER="$HOME/.npmrc"
           NPMRC_CONFIG="${NPM_CONFIG_USERCONFIG:-}"
           
+          echo "NPM_CONFIG_USERCONFIG: ${NPMRC_CONFIG:-not set}"
+          
           # 如果 setup-node 在 NPM_CONFIG_USERCONFIG 位置创建了 .npmrc，复制到 ~/.npmrc
-          if [ -n "$NPMRC_CONFIG" ] && [ -f "$NPMRC_CONFIG" ] && [ "$NPMRC_CONFIG" != "$NPMRC_USER" ]; then
-            echo "Copying .npmrc from $NPMRC_CONFIG to $NPMRC_USER"
+          if [ -n "$NPMRC_CONFIG" ] && [ -f "$NPMRC_CONFIG" ]; then
+            echo "Found .npmrc at $NPMRC_CONFIG, copying to $NPMRC_USER"
             cp "$NPMRC_CONFIG" "$NPMRC_USER"
+            cat "$NPMRC_CONFIG" | sed 's/_authToken=[^ ]*/_authToken=***/' || true
+          fi
+          
+          # 如果 ~/.npmrc 不存在，尝试查找 setup-node 创建的文件
+          if [ ! -f "$NPMRC_USER" ]; then
+            # setup-node 可能在 /home/runner/work/_temp/ 下创建 .npmrc
+            TEMP_NPMRC="/home/runner/work/_temp/.npmrc"
+            if [ -f "$TEMP_NPMRC" ]; then
+              echo "Found .npmrc at $TEMP_NPMRC, copying to $NPMRC_USER"
+              cp "$TEMP_NPMRC" "$NPMRC_USER"
+            else
+              echo "Warning: ~/.npmrc not found, searching for npmrc files..."
+              find /home/runner -name ".npmrc" 2>/dev/null | head -5 || true
+            fi
           fi
           
           # 确保 @arkts scope 配置正确
@@ -58,19 +75,23 @@ jobs:
             fi
             chmod 600 "$NPMRC_USER"
             echo ".npmrc configured at $NPMRC_USER"
-          else
-            echo "Warning: ~/.npmrc not found, but setup-node should have created it for OIDC"
+            echo "Content (masked):"
+            cat "$NPMRC_USER" | sed 's/_authToken=[^ ]*/_authToken=***/' || true
           fi
           
           # 检查 npm 版本（需要 >= 11.5.1 支持 Trusted Publishing）
           echo "npm version: $(npm --version)"
           echo "Node version: $(node --version)"
+          
+          # 确保 pnpm 使用 npm 的配置
+          pnpm config set registry https://registry.npmjs.org/ || true
 
       - name: Create Release Pull Request or Publish to npm
         id: changesets
         uses: changesets/action@v1
         with:
           createGithubReleases: true
-          publish: pnpm changeset publish
+          # 使用 npx changeset publish (通过 npm) 而不是 pnpm，以确保 OIDC 正常工作
+          publish: npx changeset publish
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
