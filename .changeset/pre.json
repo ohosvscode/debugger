@@ -4,5 +4,7 @@
   "initialVersions": {
     "@arkts/debugger": "0.0.1"
   },
-  "changesets": []
+  "changesets": [
+    "shiny-sloths-smash"
+  ]
 }
