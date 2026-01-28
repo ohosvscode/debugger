@@ -27,6 +27,12 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
           # OIDC 认证会自动处理，不需要 NODE_AUTH_TOKEN
 
+      - name: Upgrade npm to latest (for OIDC support)
+        run: |
+          # 确保 npm 版本 >= 11.5.1 以支持 Trusted Publishing
+          npm install -g npm@latest
+          npm --version
+
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
@@ -100,13 +106,28 @@ jobs:
           echo "Checking npm config:"
           npm config list || true
           echo "=== End debugging ==="
+          
+      - name: Test OIDC authentication (dry-run)
+        run: |
+          echo "Testing OIDC authentication with a dry-run publish..."
+          # 尝试一个 dry-run 发布来测试 OIDC
+          # 注意：这可能会失败，但可以帮助诊断问题
+          cd "$(mktemp -d)"
+          echo '{"name":"@arkts/test-oidc","version":"0.0.0-test"}' > package.json
+          npm publish --dry-run --registry=https://registry.npmjs.org/ 2>&1 | head -20 || echo "Dry-run completed (errors expected for test package)"
 
       - name: Create Release Pull Request or Publish to npm
         id: changesets
         uses: changesets/action@v1
         with:
           createGithubReleases: true
-          # 使用 npx changeset publish (通过 npm) 而不是 pnpm，以确保 OIDC 正常工作
-          publish: npx changeset publish
+          # 使用 npm 直接发布，确保 OIDC 正常工作
+          # changesets 会先准备发布，然后我们手动发布
+          publish: |
+            echo "Preparing to publish with OIDC..."
+            # 确保使用最新的 npm 和正确的配置
+            npm config set registry https://registry.npmjs.org/
+            # 运行 changeset publish，它会使用 npm publish
+            npx changeset publish
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
