@@ -121,13 +121,7 @@ jobs:
         uses: changesets/action@v1
         with:
           createGithubReleases: true
-          # 使用 npm 直接发布，确保 OIDC 正常工作
-          # changesets 会先准备发布，然后我们手动发布
-          publish: |
-            echo "Preparing to publish with OIDC..."
-            # 确保使用最新的 npm 和正确的配置
-            npm config set registry https://registry.npmjs.org/
-            # 运行 changeset publish，它会使用 npm publish
-            npx changeset publish
+          # 使用 npx changeset publish，OIDC 已通过 setup-node@v4 配置
+          publish: npx changeset publish
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
