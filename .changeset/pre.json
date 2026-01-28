@@ -5,6 +5,7 @@
     "@arkts/debugger": "0.0.1"
   },
   "changesets": [
-    "shiny-sloths-smash"
+    "shiny-sloths-smash",
+    "yellow-regions-peel"
   ]
 }
